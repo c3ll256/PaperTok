@@ -1,0 +1,382 @@
+import SwiftUI
+import SwiftData
+
+struct FeedView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var papers: [Paper]
+    @Query private var preferences: [UserPreference]
+    
+    @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
+    @State private var currentIndex = 0
+    @State private var rankedPapers: [Paper] = []
+    @State private var isLoading = false
+    @State private var showSettings = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+    @State private var isFavorited = false
+    
+    private var currentPaper: Paper? {
+        guard !rankedPapers.isEmpty, currentIndex >= 0, currentIndex < rankedPapers.count else { return nil }
+        return rankedPapers[currentIndex]
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "F7F5F2")
+                    .ignoresSafeArea()
+                
+                if isLoading {
+                    LoadingView(message: "加载论文中...")
+                } else if !hasConfiguredAPI {
+                    SetupPromptView {
+                        showSettings = true
+                    }
+                } else if rankedPapers.isEmpty {
+                    EmptyStateView {
+                        loadPapers()
+                    }
+                } else {
+                    VerticalPagingView(
+                        papers: rankedPapers,
+                        currentIndex: $currentIndex,
+                        modelContext: modelContext
+                    )
+                }
+                
+                // 统一的底部工具栏
+                if !rankedPapers.isEmpty && !isLoading {
+                    VStack {
+                        Spacer()
+                        bottomToolbar
+                    }
+                }
+            }
+            .navigationBarHidden(true)
+            .sheet(isPresented: $showSettings) {
+                SettingsView(onDismiss: {
+                    if hasConfiguredAPI && rankedPapers.isEmpty {
+                        loadPapers()
+                    }
+                })
+            }
+            .alert("加载失败", isPresented: $showError) {
+                Button("确定", role: .cancel) { }
+                Button("重试") {
+                    loadPapers()
+                }
+            } message: {
+                Text(errorMessage ?? "未知错误")
+            }
+            .task {
+                if hasConfiguredAPI && rankedPapers.isEmpty {
+                    loadPapers()
+                }
+            }
+            .onChange(of: currentIndex) { _, _ in
+                loadFavoriteStatus()
+            }
+        }
+    }
+    
+    // MARK: - Bottom Toolbar
+    
+    @ViewBuilder
+    private var bottomToolbar: some View {
+        GeometryReader { geo in
+            let barWidth = geo.size.width * 2.0 / 3.0
+            
+            if #available(iOS 26, *) {
+                HStack {
+                    HStack(spacing: 0) {
+                        // 设置
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                        }
+                        .buttonStyle(ToolbarButtonStyle())
+                        
+                        // 收藏
+                        Button {
+                            toggleFavorite()
+                        } label: {
+                            Image(systemName: isFavorited ? "heart.fill" : "heart")
+                                .font(.system(size: 20))
+                                .foregroundStyle(isFavorited ? Color.red : Color(hex: "1E3A5F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                        }
+                        .buttonStyle(ToolbarButtonStyle())
+                        
+                        // 查看原文
+                        Button {
+                            openOriginalPaper()
+                        } label: {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                        }
+                        .buttonStyle(ToolbarButtonStyle())
+                        
+                        // 刷新
+                        Button {
+                            loadPapers()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                        }
+                        .buttonStyle(ToolbarButtonStyle())
+                        .disabled(isLoading)
+                    }
+                    .frame(width: barWidth)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+            } else {
+                HStack {
+                    HStack(spacing: 0) {
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                        }
+                        .buttonStyle(ToolbarButtonStyle())
+                        
+                        Button {
+                            toggleFavorite()
+                        } label: {
+                            Image(systemName: isFavorited ? "heart.fill" : "heart")
+                                .font(.system(size: 20))
+                                .foregroundStyle(isFavorited ? Color.red : Color(hex: "1E3A5F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                        }
+                        .buttonStyle(ToolbarButtonStyle())
+                        
+                        Button {
+                            openOriginalPaper()
+                        } label: {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                        }
+                        .buttonStyle(ToolbarButtonStyle())
+                        
+                        Button {
+                            loadPapers()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                        }
+                        .buttonStyle(ToolbarButtonStyle())
+                        .disabled(isLoading)
+                    }
+                    .frame(width: barWidth)
+                    .padding(.vertical, 4)
+                    .background(.ultraThinMaterial)
+                    .clipShape(.capsule)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+            }
+        }
+        .frame(height: 48)
+        .padding(.bottom, 12)
+    }
+    
+    // MARK: - Actions
+    
+    private func loadFavoriteStatus() {
+        guard let paper = currentPaper else { return }
+        let arxivId = paper.arxivId
+        let descriptor = FetchDescriptor<UserAction>(
+            predicate: #Predicate { $0.arxivId == arxivId }
+        )
+        if let action = try? modelContext.fetch(descriptor).first {
+            isFavorited = action.isFavorited
+        } else {
+            isFavorited = false
+        }
+    }
+    
+    private func toggleFavorite() {
+        guard let paper = currentPaper else { return }
+        let arxivId = paper.arxivId
+        let descriptor = FetchDescriptor<UserAction>(
+            predicate: #Predicate { $0.arxivId == arxivId }
+        )
+        
+        if let action = try? modelContext.fetch(descriptor).first {
+            action.isFavorited.toggle()
+            isFavorited = action.isFavorited
+            action.updatedAt = Date()
+        } else {
+            let newAction = UserAction(arxivId: paper.arxivId, isFavorited: true)
+            modelContext.insert(newAction)
+            isFavorited = true
+        }
+        try? modelContext.save()
+    }
+    
+    private func openOriginalPaper() {
+        guard let paper = currentPaper else { return }
+        if let url = URL(string: paper.pdfURL) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    private func loadPapers() {
+        isLoading = true
+        
+        Task {
+            do {
+                guard let preference = preferences.first else {
+                    await MainActor.run {
+                        isLoading = false
+                    }
+                    return
+                }
+                
+                let arxivService = ArxivService(modelContext: modelContext)
+                let query = ArxivQuery(
+                    categories: preference.selectedCategories,
+                    maxResults: 50,
+                    sortBy: "submittedDate",
+                    sortOrder: "descending"
+                )
+                
+                let fetchedPapers = try await arxivService.fetchPapers(query: query)
+                
+                let rankingEngine = RankingEngine(modelContext: modelContext)
+                let ranked = try await rankingEngine.rankPapers(fetchedPapers)
+                
+                await MainActor.run {
+                    rankedPapers = ranked
+                    isLoading = false
+                }
+            } catch {
+                print("Error loading papers: \(error)")
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
+        }
+    }
+}
+
+struct SetupPromptView: View {
+    let onSetup: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Button(action: onSetup) {
+                HStack(spacing: 8) {
+                    Image(systemName: "gearshape")
+                    Text("配置模型")
+                }
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 160, height: 50)
+                .background(Color(hex: "1E3A5F"))
+                .clipShape(.rect(cornerRadius: 25))
+            }
+        }
+    }
+}
+
+struct EmptyStateView: View {
+    let onRefresh: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 60))
+                .foregroundStyle(Color(hex: "CCCCCC"))
+            
+            Text("暂无论文")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(Color(hex: "111111"))
+            
+            Text("点击刷新按钮加载最新论文")
+                .font(.system(size: 15))
+                .foregroundStyle(Color(hex: "555555"))
+            
+            Button(action: onRefresh) {
+                Text("刷新")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 120, height: 44)
+                    .background(Color(hex: "1E3A5F"))
+                    .clipShape(.rect(cornerRadius: 22))
+            }
+        }
+    }
+}
+
+struct ToolbarButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.75 : 1.0)
+            .opacity(configuration.isPressed ? 0.5 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+struct VerticalPagingView: View {
+    let papers: [Paper]
+    @Binding var currentIndex: Int
+    let modelContext: ModelContext
+    
+    @State private var scrollPosition: Int?
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let totalHeight = geometry.size.height + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
+            ScrollView(.vertical) {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(papers.enumerated()), id: \.element.arxivId) { index, paper in
+                        PaperCardView(paper: paper, modelContext: modelContext)
+                            .frame(width: geometry.size.width, height: totalHeight)
+                            .clipped()
+                            .id(index)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.paging)
+            .scrollIndicators(.hidden)
+            .scrollPosition(id: $scrollPosition)
+            .onChange(of: scrollPosition) { oldValue, newValue in
+                if let newValue = newValue {
+                    currentIndex = newValue
+                }
+            }
+            .onAppear {
+                scrollPosition = currentIndex
+            }
+        }
+        .ignoresSafeArea()
+    }
+}

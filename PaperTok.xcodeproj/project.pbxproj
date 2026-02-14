@@ -1,0 +1,428 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		025C351E3A086651814F2A0A /* UserAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 816E96201E32BA6FEF7AD14C /* UserAction.swift */; };
+		1D004A9E750491A213988762 /* LLMProviderAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFB72C65D32D2855BC62120C /* LLMProviderAdapter.swift */; };
+		282DC4AF17B4CF7FBE65C74E /* ArxivService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716EA10FDCCF8616A28B6BE5 /* ArxivService.swift */; };
+		3888B23D442698F2B13C7255 /* SummaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D24F1FAC870435B6EBE4AE /* SummaryService.swift */; };
+		6375608B36E34B17F7ED397D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E21E04680F7877FEDECC82 /* OnboardingView.swift */; };
+		7DF1D6118461F109A97CFA31 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0556E246F1DF0D9710A9EE0F /* Assets.xcassets */; };
+		7FA5D3FC87BD9D05CDFE9F10 /* PaperTokApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74E9EFFE09330A0653A6D74 /* PaperTokApp.swift */; };
+		802EDD5B3BDF432B4DE17554 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12575A1A9044DC011FAE75F2 /* ErrorView.swift */; };
+		86A2F1268B518BFA80ADB601 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0194168F0E0E6A009303B0B6 /* SettingsView.swift */; };
+		9DA95C33A1CD7CF7C2D0CD62 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3420D2D37082FAF093988869 /* FeedView.swift */; };
+		B3D1D0B8B36F05A404582370 /* PaperCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B870718F7A8DB4904A8BC730 /* PaperCardView.swift */; };
+		B88CEA055E3FED3ED44F5E3F /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC9258A3086E45F666E9ECB /* KeychainStore.swift */; };
+		C24F029ED76A7774DBB03E6E /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6200E89506BD64F2625E2EA1 /* LoadingView.swift */; };
+		D58CDE5C3CBF9DDF2352BB01 /* RankingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2A76614022181619D414A5 /* RankingEngine.swift */; };
+		DA5A11827D2B4D58222FAFFF /* Paper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F5B28E4FA8E1D469FBC90F /* Paper.swift */; };
+		EF5C118762AEE0D5FADA4059 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BC9FCEE774D843451DD123A /* ContentView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0194168F0E0E6A009303B0B6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		0556E246F1DF0D9710A9EE0F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		12575A1A9044DC011FAE75F2 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
+		3420D2D37082FAF093988869 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		48E21E04680F7877FEDECC82 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		5BC9FCEE774D843451DD123A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		60D24F1FAC870435B6EBE4AE /* SummaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryService.swift; sourceTree = "<group>"; };
+		6200E89506BD64F2625E2EA1 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		716EA10FDCCF8616A28B6BE5 /* ArxivService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArxivService.swift; sourceTree = "<group>"; };
+		7C2A76614022181619D414A5 /* RankingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEngine.swift; sourceTree = "<group>"; };
+		816E96201E32BA6FEF7AD14C /* UserAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAction.swift; sourceTree = "<group>"; };
+		B74E9EFFE09330A0653A6D74 /* PaperTokApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperTokApp.swift; sourceTree = "<group>"; };
+		B870718F7A8DB4904A8BC730 /* PaperCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperCardView.swift; sourceTree = "<group>"; };
+		D48E7498C6BF038A5460F901 /* PaperTok.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PaperTok.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EFB72C65D32D2855BC62120C /* LLMProviderAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProviderAdapter.swift; sourceTree = "<group>"; };
+		EFC9258A3086E45F666E9ECB /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		F4F5B28E4FA8E1D469FBC90F /* Paper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paper.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1D9C9F51CFC788170D3537F5 = {
+			isa = PBXGroup;
+			children = (
+				0556E246F1DF0D9710A9EE0F /* Assets.xcassets */,
+				BB4B2219BE2A51706E3464AC /* Models */,
+				D1252689B6D80A93750E1C88 /* PaperTok */,
+				208BB7BBB33831604B729A8D /* Security */,
+				E0CB1BD3ACFF5084D8CA222E /* Services */,
+				97CAB7E7F89AB1FEB7E252B9 /* Views */,
+				7BF333B767AA0DF1B673F0A7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		208BB7BBB33831604B729A8D /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				EFC9258A3086E45F666E9ECB /* KeychainStore.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		4B0A22185C6FF2646952F814 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				48E21E04680F7877FEDECC82 /* OnboardingView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		7BF333B767AA0DF1B673F0A7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D48E7498C6BF038A5460F901 /* PaperTok.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7E3656C4C293EE76468AEBAC /* Feed */ = {
+			isa = PBXGroup;
+			children = (
+				3420D2D37082FAF093988869 /* FeedView.swift */,
+			);
+			path = Feed;
+			sourceTree = "<group>";
+		};
+		97CAB7E7F89AB1FEB7E252B9 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C1D19CEFB2A58416730CA942 /* Components */,
+				7E3656C4C293EE76468AEBAC /* Feed */,
+				4B0A22185C6FF2646952F814 /* Onboarding */,
+				D3B6D59E5A8CB10F83514F75 /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		BB4B2219BE2A51706E3464AC /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F4F5B28E4FA8E1D469FBC90F /* Paper.swift */,
+				816E96201E32BA6FEF7AD14C /* UserAction.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		C1D19CEFB2A58416730CA942 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				12575A1A9044DC011FAE75F2 /* ErrorView.swift */,
+				6200E89506BD64F2625E2EA1 /* LoadingView.swift */,
+				B870718F7A8DB4904A8BC730 /* PaperCardView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		D1252689B6D80A93750E1C88 /* PaperTok */ = {
+			isa = PBXGroup;
+			children = (
+				5BC9FCEE774D843451DD123A /* ContentView.swift */,
+				B74E9EFFE09330A0653A6D74 /* PaperTokApp.swift */,
+				BB4B2219BE2A51706E3464AC /* Models */,
+				208BB7BBB33831604B729A8D /* Security */,
+				E0CB1BD3ACFF5084D8CA222E /* Services */,
+				97CAB7E7F89AB1FEB7E252B9 /* Views */,
+			);
+			name = PaperTok;
+			path = .;
+			sourceTree = "<group>";
+		};
+		D3B6D59E5A8CB10F83514F75 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				0194168F0E0E6A009303B0B6 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		E0CB1BD3ACFF5084D8CA222E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				716EA10FDCCF8616A28B6BE5 /* ArxivService.swift */,
+				EFB72C65D32D2855BC62120C /* LLMProviderAdapter.swift */,
+				7C2A76614022181619D414A5 /* RankingEngine.swift */,
+				60D24F1FAC870435B6EBE4AE /* SummaryService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0F93B1F8CCEF7719143A4F94 /* PaperTok */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6937D7F5845597516E48D493 /* Build configuration list for PBXNativeTarget "PaperTok" */;
+			buildPhases = (
+				9BDF06E97C2835287B032EEA /* Sources */,
+				156BE16B227CD1AB43D2F5A4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PaperTok;
+			packageProductDependencies = (
+			);
+			productName = PaperTok;
+			productReference = D48E7498C6BF038A5460F901 /* PaperTok.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		04B2225622300533610D0403 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+			};
+			buildConfigurationList = 47E4083229D9CAED091A815D /* Build configuration list for PBXProject "PaperTok" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 1D9C9F51CFC788170D3537F5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0F93B1F8CCEF7719143A4F94 /* PaperTok */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		156BE16B227CD1AB43D2F5A4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7DF1D6118461F109A97CFA31 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9BDF06E97C2835287B032EEA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				282DC4AF17B4CF7FBE65C74E /* ArxivService.swift in Sources */,
+				EF5C118762AEE0D5FADA4059 /* ContentView.swift in Sources */,
+				802EDD5B3BDF432B4DE17554 /* ErrorView.swift in Sources */,
+				9DA95C33A1CD7CF7C2D0CD62 /* FeedView.swift in Sources */,
+				B88CEA055E3FED3ED44F5E3F /* KeychainStore.swift in Sources */,
+				1D004A9E750491A213988762 /* LLMProviderAdapter.swift in Sources */,
+				C24F029ED76A7774DBB03E6E /* LoadingView.swift in Sources */,
+				6375608B36E34B17F7ED397D /* OnboardingView.swift in Sources */,
+				DA5A11827D2B4D58222FAFFF /* Paper.swift in Sources */,
+				B3D1D0B8B36F05A404582370 /* PaperCardView.swift in Sources */,
+				7FA5D3FC87BD9D05CDFE9F10 /* PaperTokApp.swift in Sources */,
+				D58CDE5C3CBF9DDF2352BB01 /* RankingEngine.swift in Sources */,
+				86A2F1268B518BFA80ADB601 /* SettingsView.swift in Sources */,
+				3888B23D442698F2B13C7255 /* SummaryService.swift in Sources */,
+				025C351E3A086651814F2A0A /* UserAction.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		420280390071CA469A4F290F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = PaperTok;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		955F84AFFC7893E154A8C3DA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.papertok.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F0928482A40C6C3533D1F95A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.papertok.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F96E74EB5D68BDF11A0ABAB7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = PaperTok;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		47E4083229D9CAED091A815D /* Build configuration list for PBXProject "PaperTok" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F96E74EB5D68BDF11A0ABAB7 /* Debug */,
+				420280390071CA469A4F290F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6937D7F5845597516E48D493 /* Build configuration list for PBXNativeTarget "PaperTok" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0928482A40C6C3533D1F95A /* Debug */,
+				955F84AFFC7893E154A8C3DA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 04B2225622300533610D0403 /* Project object */;
+}
