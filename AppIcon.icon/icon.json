@@ -2,7 +2,7 @@
   "fill" : {
     "linear-gradient" : [
       "extended-gray:1.00000,1.00000",
-      "extended-gray:0.84548,1.00000"
+      "gray:0.75000,1.00000"
     ],
     "orientation" : {
       "start" : {
@@ -19,7 +19,7 @@
     {
       "layers" : [
         {
-          "glass" : true,
+          "glass" : false,
           "image-name" : "Untitled (2).png",
           "name" : "Untitled (2)"
         }

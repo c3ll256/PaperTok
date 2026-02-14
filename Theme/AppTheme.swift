@@ -167,6 +167,19 @@ enum AppTheme {
     }
 }
 
+// MARK: - Liquid Glass Modifier
+
+struct GlassEffectModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            content
+        }
+    }
+}
+
 // MARK: - Color Hex Extension
 
 extension Color {

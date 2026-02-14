@@ -107,10 +107,10 @@ struct BookmarkCardView: View {
                         ForEach(paper.categories.prefix(3), id: \.self) { category in
                             Text(category)
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(AppTheme.Colors.accentSubtle(for: colorScheme))
+                                .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
                                 .clipShape(.rect(cornerRadius: 6))
                         }
                     }
@@ -145,7 +145,7 @@ struct BookmarkCardView: View {
                 } label: {
                     Image(systemName: "doc.text")
                         .font(.system(size: 15))
-                        .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
+                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                         .frame(width: 36, height: 36)
                         .contentShape(Rectangle())
                 }

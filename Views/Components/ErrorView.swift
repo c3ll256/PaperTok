@@ -123,10 +123,11 @@ struct ErrorView: View {
                     Button(action: action) {
                         Text(actionTitle)
                             .font(AppTheme.Typography.headline)
-                            .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
+                            .foregroundColor(AppTheme.Colors.textInverted(for: colorScheme))
                             .frame(width: 200, height: 44)
-                            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                            .cornerRadius(22)
+                            .background(AppTheme.Colors.textPrimary(for: colorScheme))
+                            .clipShape(.capsule)
+                            .modifier(GlassEffectModifier())
                     }
                 }
                 
@@ -134,14 +135,11 @@ struct ErrorView: View {
                     Button(action: retry) {
                         Text("重试")
                             .font(AppTheme.Typography.headline)
-                            .foregroundColor(AppTheme.Colors.accent(for: colorScheme))
+                            .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
                             .frame(width: 200, height: 44)
-                            .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
-                            .cornerRadius(22)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 22)
-                                    .stroke(AppTheme.Colors.accent(for: colorScheme), lineWidth: 2)
-                            )
+                            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
+                            .clipShape(.capsule)
+                            .modifier(GlassEffectModifier())
                     }
                 }
             }

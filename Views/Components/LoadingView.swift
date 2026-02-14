@@ -3,37 +3,20 @@ import SwiftUI
 struct LoadingView: View {
     @Environment(\.colorScheme) private var colorScheme
     let message: String
-    @State private var isAnimating = false
     
     init(message: String = "加载中...") {
         self.message = message
     }
     
     var body: some View {
-        VStack(spacing: 20) {
-            ZStack {
-                Circle()
-                    .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 3)
-                    .frame(width: 60, height: 60)
-                
-                Circle()
-                    .trim(from: 0, to: 0.7)
-                    .stroke(AppTheme.Colors.accent(for: colorScheme), lineWidth: 3)
-                    .frame(width: 60, height: 60)
-                    .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
-                    .animation(
-                        Animation.linear(duration: 1)
-                            .repeatForever(autoreverses: false),
-                        value: isAnimating
-                    )
-            }
+        VStack(spacing: 16) {
+            ProgressView()
+                .controlSize(.regular)
+                .tint(AppTheme.Colors.textSecondary(for: colorScheme))
             
             Text(message)
-                .font(AppTheme.Typography.headline)
+                .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.Colors.textSecondary(for: colorScheme))
-        }
-        .onAppear {
-            isAnimating = true
         }
     }
 }
@@ -41,30 +24,20 @@ struct LoadingView: View {
 struct PulsingLoadingView: View {
     @Environment(\.colorScheme) private var colorScheme
     let message: String
-    @State private var scale: CGFloat = 1.0
     
     init(message: String = "处理中...") {
         self.message = message
     }
     
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 50))
-                .foregroundColor(AppTheme.Colors.accent(for: colorScheme))
-                .scaleEffect(scale)
-                .animation(
-                    Animation.easeInOut(duration: 1.0)
-                        .repeatForever(autoreverses: true),
-                    value: scale
-                )
+        VStack(spacing: 16) {
+            ProgressView()
+                .controlSize(.regular)
+                .tint(AppTheme.Colors.textSecondary(for: colorScheme))
             
             Text(message)
-                .font(AppTheme.Typography.headline)
+                .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.Colors.textSecondary(for: colorScheme))
-        }
-        .onAppear {
-            scale = 1.2
         }
     }
 }

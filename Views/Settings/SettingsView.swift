@@ -149,24 +149,25 @@ struct SettingsView: View {
                             HStack {
                                 if isTestingConnection {
                                     ProgressView()
-                                        .tint(AppTheme.Colors.textPrimary(for: colorScheme))
+                                        .tint(AppTheme.Colors.textInverted(for: colorScheme))
                                 } else {
                                     Text("测试连接")
                                         .font(AppTheme.Typography.headline)
                                 }
                             }
-                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                            .foregroundStyle(apiKey.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+                            .background(apiKey.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                            .clipShape(.capsule)
+                            .modifier(GlassEffectModifier())
                         }
                         .disabled(apiKey.isEmpty || isTestingConnection)
                         
                         if showTestResult {
                             Text(testResultMessage)
                                 .font(AppTheme.Typography.body)
-                                .foregroundStyle(testResultMessage.contains("成功") ? AppTheme.Colors.accent(for: colorScheme) : AppTheme.Colors.destructive(for: colorScheme))
+                                .foregroundStyle(testResultMessage.contains("成功") ? AppTheme.Colors.accentGreen(for: colorScheme) : AppTheme.Colors.destructive(for: colorScheme))
                                 .multilineTextAlignment(.center)
                         }
                     }
@@ -176,11 +177,12 @@ struct SettingsView: View {
                     Button(action: saveConfiguration) {
                         Text("保存配置")
                             .font(AppTheme.Typography.headline)
-                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                            .foregroundStyle(apiKey.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(apiKey.isEmpty ? AppTheme.Colors.surfacePrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+                            .background(apiKey.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                            .clipShape(.capsule)
+                            .modifier(GlassEffectModifier())
                     }
                     .disabled(apiKey.isEmpty)
                     .padding(.horizontal, 24)
@@ -220,9 +222,13 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") {
+                    Button {
                         dismiss()
                         onDismiss?()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                     }
                 }
             }
@@ -523,11 +529,12 @@ struct CategorySelectionView: View {
                     Button(action: savePreferences) {
                         Text("保存")
                             .font(AppTheme.Typography.headline)
-                            .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
+                            .foregroundColor(selectedCategories.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(selectedCategories.isEmpty ? AppTheme.Colors.surfacePrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                            .cornerRadius(AppTheme.CornerRadius.card)
+                            .background(selectedCategories.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                            .clipShape(.capsule)
+                            .modifier(GlassEffectModifier())
                     }
                     .disabled(selectedCategories.isEmpty)
                     .padding(.horizontal, 24)
@@ -540,8 +547,12 @@ struct CategorySelectionView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                     }
                 }
             }

@@ -40,6 +40,25 @@ struct FeedView: View {
                     )
                 }
                 
+                // 顶部和底部渐变模糊
+                if !rankedPapers.isEmpty && !isLoading {
+                    GeometryReader { geo in
+                        VStack {
+                            // 顶部渐变模糊
+                            VariableBlurView(maxBlurRadius: 16, direction: .blurredTopClearBottom)
+                                .frame(height: geo.safeAreaInsets.top + 100)
+                            
+                            Spacer()
+                            
+                            // 底部渐变模糊
+                            VariableBlurView(maxBlurRadius: 16, direction: .blurredBottomClearTop)
+                                .frame(height: geo.safeAreaInsets.bottom + 100)
+                        }
+                    }
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                }
+                
                 // 统一的底部工具栏
                 if !rankedPapers.isEmpty && !isLoading {
                     VStack {
@@ -233,10 +252,11 @@ struct SetupPromptView: View {
                     Text("配置模型")
                 }
                 .font(AppTheme.Typography.headline)
-                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
                 .frame(width: 160, height: 50)
-                .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                .clipShape(.rect(cornerRadius: 25))
+                .background(AppTheme.Colors.textPrimary(for: colorScheme))
+                .clipShape(.capsule)
+                .modifier(GlassEffectModifier())
             }
         }
     }
@@ -263,10 +283,11 @@ struct EmptyStateView: View {
             Button(action: onRefresh) {
                 Text("刷新")
                     .font(AppTheme.Typography.headline)
-                    .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                    .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
                     .frame(width: 120, height: 44)
-                    .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                    .clipShape(.rect(cornerRadius: 22))
+                    .background(AppTheme.Colors.textPrimary(for: colorScheme))
+                    .clipShape(.capsule)
+                    .modifier(GlassEffectModifier())
             }
         }
     }

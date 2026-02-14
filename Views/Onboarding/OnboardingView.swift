@@ -73,15 +73,15 @@ struct OnboardingView: View {
                 Button(action: savePreferences) {
                     Text("继续")
                         .font(AppTheme.Typography.headline)
-                        .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
+                        .foregroundColor(selectedCategories.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .background(selectedCategories.isEmpty ? AppTheme.Colors.surfacePrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                        .cornerRadius(AppTheme.CornerRadius.card)
+                        .background(selectedCategories.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                        .clipShape(.capsule)
+                        .modifier(GlassEffectModifier())
                 }
                 .disabled(selectedCategories.isEmpty)
                 .padding(.horizontal, 24)
-                .padding(.bottom, 40)
             }
             .background(AppTheme.Colors.background(for: colorScheme))
         }

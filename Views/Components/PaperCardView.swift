@@ -13,6 +13,8 @@ struct PaperCardView: View {
     @State private var startTime = Date()
     @State private var isFavorited = false
     
+    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -24,10 +26,10 @@ struct PaperCardView: View {
                                 ForEach(paper.categories, id: \.self) { category in
                                     Text(category)
                                         .font(AppTheme.Typography.tag)
-                                        .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
+                                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(AppTheme.Colors.accentSubtle(for: colorScheme))
+                                        .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
                                         .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.tag))
                                 }
                             }
@@ -74,11 +76,12 @@ struct PaperCardView: View {
                                 Text("生成 AI 摘要")
                             }
                             .font(AppTheme.Typography.headline)
-                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                            .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+                            .background(AppTheme.Colors.textPrimary(for: colorScheme))
+                            .clipShape(.capsule)
+                            .modifier(GlassEffectModifier())
                         }
                     }
                 }
@@ -113,6 +116,7 @@ struct PaperCardView: View {
         .safeAreaPadding(.top)
         .background(AppTheme.Colors.background(for: colorScheme))
         .task {
+            feedbackGenerator.prepare()
             loadSummary()
             loadFavoriteStatus()
             startTime = Date()
@@ -205,13 +209,12 @@ struct PaperCardView: View {
     }
     
     private func toggleFavorite() {
+        feedbackGenerator.impactOccurred()
+        
         let arxivId = paper.arxivId
         let descriptor = FetchDescriptor<UserAction>(
             predicate: #Predicate { $0.arxivId == arxivId }
         )
-        
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
         
         if let action = try? modelContext.fetch(descriptor).first {
             action.isFavorited.toggle()
@@ -267,7 +270,7 @@ struct SummaryContentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "quote.bubble")
                             .font(.system(size: 16))
-                            .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
+                            .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                         Text("一句话总结")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
@@ -275,11 +278,11 @@ struct SummaryContentView: View {
                     
                     Text(oneLiner)
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
+                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                         .italic()
                 }
                 .padding(16)
-                .background(AppTheme.Colors.accentSubtle(for: colorScheme))
+                .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
                 .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
             }
             
@@ -288,7 +291,7 @@ struct SummaryContentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "book")
                             .font(.system(size: 16))
-                            .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
+                            .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                         Text("核心术语")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
@@ -314,7 +317,7 @@ struct SectionView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 16))
-                    .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
@@ -341,7 +344,7 @@ struct TermCardView: View {
                 
                 Text(term.termEnglish)
                     .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
             }
             
             Text(term.explanation)
@@ -374,47 +377,87 @@ struct PaperBottomActionsView: View {
                 .padding(.horizontal, 24)
             
             // Action buttons
-            HStack(spacing: 16) {
-                // 喜欢按钮
-                Button(action: onToggleFavorite) {
-                    HStack(spacing: 6) {
-                        Image(systemName: isFavorited ? "heart.fill" : "heart")
-                            .font(.system(size: 16))
-                            .symbolEffect(.bounce, value: isFavorited)
-                        Text(isFavorited ? "已喜欢" : "喜欢")
-                            .font(.system(size: 14, weight: .medium))
+            if #available(iOS 26, *) {
+                GlassEffectContainer(spacing: 12) {
+                    HStack(spacing: 12) {
+                        // 喜欢按钮
+                        Button(action: onToggleFavorite) {
+                            HStack(spacing: 6) {
+                                Image(systemName: isFavorited ? "heart.fill" : "heart")
+                                    .font(.system(size: 16))
+                                    .symbolEffect(.bounce, value: isFavorited)
+                                Text(isFavorited ? "已喜欢" : "喜欢")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundStyle(isFavorited ? AppTheme.Colors.favorite(for: colorScheme) : AppTheme.Colors.textSecondary(for: colorScheme))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .contentShape(.capsule)
+                            .glassEffect(.regular.interactive(), in: .capsule)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // 查看原文按钮
+                        Button(action: onOpenOriginal) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "doc.text")
+                                    .font(.system(size: 16))
+                                Text("查看原文")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .contentShape(.capsule)
+                            .glassEffect(.regular.interactive(), in: .capsule)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .foregroundStyle(isFavorited ? AppTheme.Colors.favorite(for: colorScheme) : AppTheme.Colors.textSecondary(for: colorScheme))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(
-                        isFavorited
-                            ? AppTheme.Colors.favorite(for: colorScheme).opacity(0.08)
-                            : AppTheme.Colors.accentSubtle(for: colorScheme)
-                    )
-                    .clipShape(.rect(cornerRadius: 10))
                 }
-                .buttonStyle(.plain)
-                
-                // 查看原文按钮
-                Button(action: onOpenOriginal) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "doc.text")
-                            .font(.system(size: 16))
-                        Text("查看原文")
-                            .font(.system(size: 14, weight: .medium))
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
+            } else {
+                HStack(spacing: 12) {
+                    // 喜欢按钮
+                    Button(action: onToggleFavorite) {
+                        HStack(spacing: 6) {
+                            Image(systemName: isFavorited ? "heart.fill" : "heart")
+                                .font(.system(size: 16))
+                                .symbolEffect(.bounce, value: isFavorited)
+                            Text(isFavorited ? "已喜欢" : "喜欢")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundStyle(isFavorited ? AppTheme.Colors.favorite(for: colorScheme) : AppTheme.Colors.textSecondary(for: colorScheme))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .contentShape(.capsule)
+                        .background(.ultraThinMaterial)
+                        .clipShape(.capsule)
                     }
-                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(AppTheme.Colors.accentSubtle(for: colorScheme))
-                    .clipShape(.rect(cornerRadius: 10))
+                    .buttonStyle(.plain)
+                    
+                    // 查看原文按钮
+                    Button(action: onOpenOriginal) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 16))
+                            Text("查看原文")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .contentShape(.capsule)
+                        .background(.ultraThinMaterial)
+                        .clipShape(.capsule)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-            .padding(.bottom, 16)
             
             // Next article hint
             VStack(spacing: 6) {
@@ -426,7 +469,7 @@ struct PaperBottomActionsView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity)
     }
