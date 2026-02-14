@@ -26,6 +26,7 @@ targets:
           - "Services/**/*.swift"
           - "Persistence/**/*.swift"
           - "Security/**/*.swift"
+          - "Theme/**/*.swift"
         excludes:
           - "Package.swift"
           - "README.md"

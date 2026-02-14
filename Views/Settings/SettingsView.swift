@@ -4,6 +4,7 @@ import SwiftData
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
     @State private var selectedProvider: LLMProvider = .anthropic
     @State private var apiKey: String = ""
@@ -29,7 +30,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("论文范围")
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(Color(hex: "111111"))
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             .padding(.horizontal, 24)
                         
                         Button(action: {
@@ -38,26 +39,26 @@ struct SettingsView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("选择感兴趣的领域")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(Color(hex: "111111"))
+                                        .font(AppTheme.Typography.headline)
+                                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                                     
                                     Text("调整你想看到的论文类型")
                                         .font(.system(size: 14))
-                                        .foregroundStyle(Color(hex: "555555"))
+                                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                 }
                                 
                                 Spacer()
                                 
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Color(hex: "AAAAAA"))
+                                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                             }
                             .padding(16)
-                            .background(Color.white)
-                            .clipShape(.rect(cornerRadius: 12))
+                            .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+                            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color(hex: "DDDDDD"), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                                    .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -70,13 +71,13 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         Text("API 配置")
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(Color(hex: "111111"))
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                         
                         // Provider selection
                         VStack(alignment: .leading, spacing: 12) {
                             Text("API 提供商")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(Color(hex: "111111"))
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             
                             Picker("Provider", selection: $selectedProvider) {
                                 ForEach(LLMProvider.allCases, id: \.self) { provider in
@@ -96,48 +97,48 @@ struct SettingsView: View {
                         // API Key
                         VStack(alignment: .leading, spacing: 8) {
                             Text("API Key")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(Color(hex: "111111"))
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             
-                            SecureField("输入你的 API Key", text: $apiKey, prompt: Text("输入你的 API Key").foregroundStyle(Color(hex: "999999")))
+                            SecureField("输入你的 API Key", text: $apiKey, prompt: Text("输入你的 API Key").foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme)))
                                 .textFieldStyle(CustomTextFieldStyle())
                             
                             Text("密钥仅保存在本地设备，不会上传到任何服务器")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color(hex: "888888"))
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                         }
                         
                         // Base URL
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Base URL")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(Color(hex: "111111"))
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             
-                            TextField("API 端点地址", text: $baseURL, prompt: Text("API 端点地址").foregroundStyle(Color(hex: "999999")))
+                            TextField("API 端点地址", text: $baseURL, prompt: Text("API 端点地址").foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme)))
                                 .textFieldStyle(CustomTextFieldStyle())
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .keyboardType(.URL)
                             
                             Text("默认值：\(selectedProvider.defaultBaseURL)")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color(hex: "888888"))
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                         }
                         
                         // Model Name
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Model Name")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(Color(hex: "111111"))
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             
-                            TextField("模型名称", text: $modelName, prompt: Text("模型名称").foregroundStyle(Color(hex: "999999")))
+                            TextField("模型名称", text: $modelName, prompt: Text("模型名称").foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme)))
                                 .textFieldStyle(CustomTextFieldStyle())
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                             
                             Text("默认值：\(selectedProvider.defaultModel)")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color(hex: "888888"))
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                         }
                     }
                     .padding(.horizontal, 24)
@@ -151,21 +152,21 @@ struct SettingsView: View {
                                         .tint(.white)
                                 } else {
                                     Text("测试连接")
-                                        .font(.system(size: 17, weight: .semibold))
+                                        .font(AppTheme.Typography.headline)
                                 }
                             }
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(Color(hex: "1E3A5F"))
-                            .clipShape(.rect(cornerRadius: 12))
+                            .background(AppTheme.Colors.accent)
+                            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                         }
                         .disabled(apiKey.isEmpty || isTestingConnection)
                         
                         if showTestResult {
                             Text(testResultMessage)
-                                .font(.system(size: 15))
-                                .foregroundStyle(testResultMessage.contains("成功") ? Color.green : Color.red)
+                                .font(AppTheme.Typography.body)
+                                .foregroundStyle(testResultMessage.contains("成功") ? AppTheme.Colors.accent : AppTheme.Colors.destructive(for: colorScheme))
                                 .multilineTextAlignment(.center)
                         }
                     }
@@ -174,12 +175,12 @@ struct SettingsView: View {
                     // Save button
                     Button(action: saveConfiguration) {
                         Text("保存配置")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(AppTheme.Typography.headline)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(apiKey.isEmpty ? Color(hex: "CCCCCC") : Color(hex: "1E3A5F"))
-                            .clipShape(.rect(cornerRadius: 12))
+                            .background(apiKey.isEmpty ? AppTheme.Colors.textTertiary(for: colorScheme) : AppTheme.Colors.accent)
+                            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                     }
                     .disabled(apiKey.isEmpty)
                     .padding(.horizontal, 24)
@@ -188,11 +189,11 @@ struct SettingsView: View {
                     VStack(spacing: 8) {
                         Text("关于费用")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color(hex: "111111"))
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                         
                         Text("使用 AI 摘要功能会消耗你的 API 配额。每篇论文摘要约消耗 1000-2000 tokens。费用由你与 API 提供商直接结算，PaperTok 不收取任何额外费用。")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color(hex: "555555"))
+                            .font(AppTheme.Typography.caption)
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
@@ -202,11 +203,11 @@ struct SettingsView: View {
                     VStack(spacing: 8) {
                         Text("隐私与安全")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color(hex: "111111"))
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                         
                         Text("你的 API 密钥仅保存在本地设备的 Keychain 中，不会上传到任何服务器。PaperTok 不收集、存储或传输你的密钥信息。")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color(hex: "555555"))
+                            .font(AppTheme.Typography.caption)
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
@@ -214,7 +215,7 @@ struct SettingsView: View {
                 }
                 .padding(.bottom, 40)
             }
-            .background(Color(hex: "F7F5F2"))
+            .background(AppTheme.Colors.background(for: colorScheme))
             .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -236,13 +237,13 @@ struct SettingsView: View {
     
     private func configureSegmentedControl() {
         // Configure segmented control appearance
-        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(Color(hex: "1E3A5F"))
+        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(AppTheme.Colors.accent)
         UISegmentedControl.appearance().setTitleTextAttributes([
             .foregroundColor: UIColor.white,
             .font: UIFont.systemFont(ofSize: 15, weight: .medium)
         ], for: .selected)
         UISegmentedControl.appearance().setTitleTextAttributes([
-            .foregroundColor: UIColor(Color(hex: "111111")),
+            .foregroundColor: UIColor(AppTheme.Colors.textPrimary(for: colorScheme)),
             .font: UIFont.systemFont(ofSize: 15, weight: .regular)
         ], for: .normal)
     }
@@ -443,22 +444,25 @@ struct SettingsView: View {
 }
 
 struct CustomTextFieldStyle: TextFieldStyle {
+    @Environment(\.colorScheme) private var colorScheme
+    
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
-            .foregroundStyle(Color(hex: "111111"))
-            .tint(Color(hex: "1E3A5F"))
+            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+            .tint(AppTheme.Colors.accent)
             .padding(16)
-            .background(Color.white)
-            .clipShape(.rect(cornerRadius: 12))
+            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
+            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(hex: "DDDDDD"), lineWidth: 1)
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                    .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
             )
     }
 }
 
 struct CategorySelectionView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     let modelContext: ModelContext
     
     @State private var selectedCategories: Set<String> = []
@@ -483,12 +487,12 @@ struct CategorySelectionView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("选择你感兴趣的领域")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(Color(hex: "111111"))
+                        .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
                         .padding(.horizontal, 24)
                     
                     Text("至少选择一个领域")
-                        .font(.system(size: 15))
-                        .foregroundColor(Color(hex: "555555"))
+                        .font(AppTheme.Typography.body)
+                        .foregroundColor(AppTheme.Colors.textSecondary(for: colorScheme))
                         .padding(.horizontal, 24)
                 }
                 .padding(.top, 20)
@@ -518,20 +522,20 @@ struct CategorySelectionView: View {
                     
                     Button(action: savePreferences) {
                         Text("保存")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(AppTheme.Typography.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(selectedCategories.isEmpty ? Color(hex: "CCCCCC") : Color(hex: "1E3A5F"))
-                            .cornerRadius(12)
+                            .background(selectedCategories.isEmpty ? AppTheme.Colors.textTertiary(for: colorScheme) : AppTheme.Colors.accent)
+                            .cornerRadius(AppTheme.CornerRadius.card)
                     }
                     .disabled(selectedCategories.isEmpty)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 16)
                 }
-                .background(Color(hex: "F7F5F2"))
+                .background(AppTheme.Colors.background(for: colorScheme))
             }
-            .background(Color(hex: "F7F5F2"))
+            .background(AppTheme.Colors.background(for: colorScheme))
             .navigationTitle("论文范围")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -89,6 +89,7 @@ enum AppError: Identifiable {
 }
 
 struct ErrorView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let error: AppError
     let onRetry: (() -> Void)?
     let onAction: (() -> Void)?
@@ -103,16 +104,16 @@ struct ErrorView: View {
         VStack(spacing: 24) {
             Image(systemName: error.icon)
                 .font(.system(size: 60))
-                .foregroundColor(Color(hex: "FF6B6B"))
+                .foregroundColor(AppTheme.Colors.destructive(for: colorScheme))
             
             VStack(spacing: 8) {
                 Text(error.title)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(Color(hex: "111111"))
+                    .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
                 
                 Text(error.message)
-                    .font(.system(size: 15))
-                    .foregroundColor(Color(hex: "555555"))
+                    .font(AppTheme.Typography.body)
+                    .foregroundColor(AppTheme.Colors.textSecondary(for: colorScheme))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
             }
@@ -121,10 +122,10 @@ struct ErrorView: View {
                 if let actionTitle = error.actionTitle, let action = onAction {
                     Button(action: action) {
                         Text(actionTitle)
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(AppTheme.Typography.headline)
                             .foregroundColor(.white)
                             .frame(width: 200, height: 44)
-                            .background(Color(hex: "1E3A5F"))
+                            .background(AppTheme.Colors.accent)
                             .cornerRadius(22)
                     }
                 }
@@ -132,14 +133,14 @@ struct ErrorView: View {
                 if let retry = onRetry {
                     Button(action: retry) {
                         Text("重试")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(Color(hex: "1E3A5F"))
+                            .font(AppTheme.Typography.headline)
+                            .foregroundColor(AppTheme.Colors.accent)
                             .frame(width: 200, height: 44)
-                            .background(Color.white)
+                            .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
                             .cornerRadius(22)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 22)
-                                    .stroke(Color(hex: "1E3A5F"), lineWidth: 2)
+                                    .stroke(AppTheme.Colors.accent, lineWidth: 2)
                             )
                     }
                 }
@@ -150,6 +151,7 @@ struct ErrorView: View {
 }
 
 struct ErrorBanner: View {
+    @Environment(\.colorScheme) private var colorScheme
     let error: AppError
     @Binding var isPresented: Bool
     
@@ -165,7 +167,7 @@ struct ErrorBanner: View {
                     .foregroundColor(.white)
                 
                 Text(error.message.components(separatedBy: "\n").first ?? "")
-                    .font(.system(size: 13))
+                    .font(AppTheme.Typography.caption)
                     .foregroundColor(.white.opacity(0.9))
                     .lineLimit(2)
             }
@@ -179,8 +181,8 @@ struct ErrorBanner: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "FF6B6B"))
-        .cornerRadius(12)
+        .background(AppTheme.Colors.destructive(for: colorScheme))
+        .cornerRadius(AppTheme.CornerRadius.card)
         .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 16)
         .transition(.move(edge: .top).combined(with: .opacity))

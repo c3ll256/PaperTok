@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct PaperCardView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let paper: Paper
     let modelContext: ModelContext
     
@@ -22,12 +23,12 @@ struct PaperCardView: View {
                             HStack(spacing: 8) {
                                 ForEach(paper.categories, id: \.self) { category in
                                     Text(category)
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundStyle(Color(hex: "1E3A5F"))
+                                        .font(AppTheme.Typography.tag)
+                                        .foregroundStyle(AppTheme.Colors.accent)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(Color(hex: "1E3A5F").opacity(0.1))
-                                        .clipShape(.rect(cornerRadius: 12))
+                                        .background(AppTheme.Colors.accentSubtle(for: colorScheme))
+                                        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.tag))
                                 }
                             }
                         }
@@ -37,19 +38,19 @@ struct PaperCardView: View {
                     
                     // Title
                     Text(paper.title)
-                        .font(.system(size: 24, weight: .bold, design: .serif))
-                        .foregroundStyle(Color(hex: "111111"))
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                         .lineLimit(3)
                     
                     // Authors and date
                     VStack(alignment: .leading, spacing: 4) {
                         Text(paper.authors.prefix(3).joined(separator: ", ") + (paper.authors.count > 3 ? " et al." : ""))
                             .font(.system(size: 14))
-                            .foregroundStyle(Color(hex: "555555"))
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                         
                         Text(formatDate(paper.publishedDate))
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color(hex: "888888"))
+                            .font(AppTheme.Typography.caption)
+                            .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                     }
                 }
                 .padding(.horizontal, 24)
@@ -72,12 +73,12 @@ struct PaperCardView: View {
                                 Image(systemName: "sparkles")
                                 Text("生成 AI 摘要")
                             }
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(AppTheme.Typography.headline)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(Color(hex: "1E3A5F"))
-                            .clipShape(.rect(cornerRadius: 12))
+                            .background(AppTheme.Colors.accent)
+                            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                         }
                     }
                 }
@@ -89,12 +90,12 @@ struct PaperCardView: View {
                 // Original abstract
                 VStack(alignment: .leading, spacing: 12) {
                     Text("原始摘要")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color(hex: "111111"))
+                        .font(AppTheme.Typography.headline)
+                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                     
                     Text(paper.abstractText)
-                        .font(.system(size: 15))
-                        .foregroundStyle(Color(hex: "555555"))
+                        .font(AppTheme.Typography.body)
+                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                 }
                 .padding(24)
                 
@@ -110,7 +111,7 @@ struct PaperCardView: View {
         }
         .scrollIndicators(.hidden)
         .safeAreaPadding(.top)
-        .background(Color(hex: "F7F5F2"))
+        .background(AppTheme.Colors.background(for: colorScheme))
         .task {
             loadSummary()
             loadFavoriteStatus()
@@ -239,6 +240,7 @@ struct PaperCardView: View {
 }
 
 struct SummaryContentView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let summary: PaperSummary
     let terms: [TermGlossaryItem]
     
@@ -265,20 +267,20 @@ struct SummaryContentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "quote.bubble")
                             .font(.system(size: 16))
-                            .foregroundStyle(Color(hex: "1E3A5F"))
+                            .foregroundStyle(AppTheme.Colors.accent)
                         Text("一句话总结")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color(hex: "111111"))
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                     }
                     
                     Text(oneLiner)
-                        .font(.system(size: 17, weight: .medium, design: .serif))
-                        .foregroundStyle(Color(hex: "1E3A5F"))
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(AppTheme.Colors.accent)
                         .italic()
                 }
                 .padding(16)
-                .background(Color(hex: "1E3A5F").opacity(0.05))
-                .clipShape(.rect(cornerRadius: 12))
+                .background(AppTheme.Colors.accentSubtle(for: colorScheme))
+                .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
             }
             
             if !terms.isEmpty {
@@ -286,10 +288,10 @@ struct SummaryContentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "book")
                             .font(.system(size: 16))
-                            .foregroundStyle(Color(hex: "1E3A5F"))
+                            .foregroundStyle(AppTheme.Colors.accent)
                         Text("核心术语")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color(hex: "111111"))
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                     }
                     
                     ForEach(terms.prefix(6), id: \.id) { term in
@@ -302,6 +304,7 @@ struct SummaryContentView: View {
 }
 
 struct SectionView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let content: String
     let icon: String
@@ -311,21 +314,22 @@ struct SectionView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 16))
-                    .foregroundStyle(Color(hex: "1E3A5F"))
+                    .foregroundStyle(AppTheme.Colors.accent)
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color(hex: "111111"))
+                    .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
             }
             
             Text(content)
-                .font(.system(size: 15))
-                .foregroundStyle(Color(hex: "555555"))
+                .font(AppTheme.Typography.body)
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                 .lineSpacing(4)
         }
     }
 }
 
 struct TermCardView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let term: TermGlossaryItem
     
     var body: some View {
@@ -333,31 +337,32 @@ struct TermCardView: View {
             HStack {
                 Text(term.termChinese)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color(hex: "111111"))
+                    .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                 
                 Text(term.termEnglish)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color(hex: "1E3A5F"))
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.accent)
             }
             
             Text(term.explanation)
                 .font(.system(size: 14))
-                .foregroundStyle(Color(hex: "555555"))
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
             
             if !term.contextMeaning.isEmpty {
                 Text("本文中：\(term.contextMeaning)")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color(hex: "888888"))
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                     .italic()
             }
         }
         .padding(12)
-        .background(Color.white)
-        .clipShape(.rect(cornerRadius: 8))
+        .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.tag))
     }
 }
 
 struct PaperBottomActionsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let paper: Paper
     @Binding var isFavorited: Bool
     let onToggleFavorite: () -> Void
@@ -379,13 +384,13 @@ struct PaperBottomActionsView: View {
                         Text(isFavorited ? "已喜欢" : "喜欢")
                             .font(.system(size: 14, weight: .medium))
                     }
-                    .foregroundStyle(isFavorited ? Color.red : Color(hex: "555555"))
+                    .foregroundStyle(isFavorited ? AppTheme.Colors.favorite(for: colorScheme) : AppTheme.Colors.textSecondary(for: colorScheme))
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
                     .background(
                         isFavorited
-                            ? Color.red.opacity(0.08)
-                            : Color(hex: "1E3A5F").opacity(0.05)
+                            ? AppTheme.Colors.favorite(for: colorScheme).opacity(0.08)
+                            : AppTheme.Colors.accentSubtle(for: colorScheme)
                     )
                     .clipShape(.rect(cornerRadius: 10))
                 }
@@ -399,10 +404,10 @@ struct PaperBottomActionsView: View {
                         Text("查看原文")
                             .font(.system(size: 14, weight: .medium))
                     }
-                    .foregroundStyle(Color(hex: "555555"))
+                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
-                    .background(Color(hex: "1E3A5F").opacity(0.05))
+                    .background(AppTheme.Colors.accentSubtle(for: colorScheme))
                     .clipShape(.rect(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
@@ -415,13 +420,13 @@ struct PaperBottomActionsView: View {
             VStack(spacing: 6) {
                 Image(systemName: "chevron.compact.down")
                     .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(Color(hex: "CCCCCC"))
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                 
                 Text("继续下滑，阅读下一篇")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color(hex: "CCCCCC"))
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity)
     }

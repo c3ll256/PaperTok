@@ -3,6 +3,7 @@ import SwiftData
 
 struct FeedView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query private var papers: [Paper]
     @Query private var preferences: [UserPreference]
     
@@ -18,7 +19,7 @@ struct FeedView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "F7F5F2")
+                AppTheme.Colors.background(for: colorScheme)
                     .ignoresSafeArea()
                 
                 if isLoading {
@@ -91,7 +92,7 @@ struct FeedView: View {
                         } label: {
                             Image(systemName: "gearshape")
                                 .font(.system(size: 20))
-                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
                         }
@@ -103,7 +104,7 @@ struct FeedView: View {
                         } label: {
                             Image(systemName: "archivebox")
                                 .font(.system(size: 20))
-                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
                         }
@@ -115,7 +116,7 @@ struct FeedView: View {
                         } label: {
                             Image(systemName: "arrow.2.circlepath.circle")
                                 .font(.system(size: 20))
-                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
                         }
@@ -135,7 +136,7 @@ struct FeedView: View {
                         } label: {
                             Image(systemName: "gearshape")
                                 .font(.system(size: 20))
-                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
                         }
@@ -146,7 +147,7 @@ struct FeedView: View {
                         } label: {
                             Image(systemName: "archivebox")
                                 .font(.system(size: 20))
-                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
                         }
@@ -157,7 +158,7 @@ struct FeedView: View {
                         } label: {
                             Image(systemName: "arrow.2.circlepath.circle")
                                 .font(.system(size: 20))
-                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
                         }
@@ -230,10 +231,10 @@ struct SetupPromptView: View {
                     Image(systemName: "gearshape")
                     Text("配置模型")
                 }
-                .font(.system(size: 17, weight: .semibold))
+                .font(AppTheme.Typography.headline)
                 .foregroundStyle(.white)
                 .frame(width: 160, height: 50)
-                .background(Color(hex: "1E3A5F"))
+                .background(AppTheme.Colors.accent)
                 .clipShape(.rect(cornerRadius: 25))
             }
         }
@@ -241,28 +242,29 @@ struct SetupPromptView: View {
 }
 
 struct EmptyStateView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let onRefresh: () -> Void
     
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 60))
-                .foregroundStyle(Color(hex: "CCCCCC"))
+                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
             
             Text("暂无论文")
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Color(hex: "111111"))
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
             
             Text("点击刷新按钮加载最新论文")
-                .font(.system(size: 15))
-                .foregroundStyle(Color(hex: "555555"))
+                .font(AppTheme.Typography.body)
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
             
             Button(action: onRefresh) {
                 Text("刷新")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(AppTheme.Typography.headline)
                     .foregroundStyle(.white)
                     .frame(width: 120, height: 44)
-                    .background(Color(hex: "1E3A5F"))
+                    .background(AppTheme.Colors.accent)
                     .clipShape(.rect(cornerRadius: 22))
             }
         }

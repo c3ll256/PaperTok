@@ -4,6 +4,7 @@ import SwiftData
 struct BookmarksView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query(filter: #Predicate<UserAction> { $0.isFavorited == true },
            sort: \UserAction.updatedAt,
            order: .reverse)
@@ -24,7 +25,7 @@ struct BookmarksView: View {
                     paperList
                 }
             }
-            .background(Color(hex: "F7F5F2"))
+            .background(AppTheme.Colors.background(for: colorScheme))
             .navigationTitle("收藏夹")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -35,7 +36,7 @@ struct BookmarksView: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 24))
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(Color(hex: "888888"))
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                     }
                 }
             }
@@ -48,11 +49,11 @@ struct BookmarksView: View {
         VStack(spacing: 16) {
             Image(systemName: "heart.slash")
                 .font(.system(size: 48))
-                .foregroundStyle(Color(hex: "CCCCCC"))
+                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
             
             Text("暂无收藏")
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Color(hex: "111111"))
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -91,6 +92,7 @@ struct BookmarksView: View {
 // MARK: - Bookmark Card
 
 struct BookmarkCardView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let paper: Paper
     let onRemove: () -> Void
     
@@ -105,10 +107,10 @@ struct BookmarkCardView: View {
                         ForEach(paper.categories.prefix(3), id: \.self) { category in
                             Text(category)
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(Color(hex: "1E3A5F"))
+                                .foregroundStyle(AppTheme.Colors.accent)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(Color(hex: "1E3A5F").opacity(0.1))
+                                .background(AppTheme.Colors.accentSubtle(for: colorScheme))
                                 .clipShape(.rect(cornerRadius: 6))
                         }
                     }
@@ -117,21 +119,21 @@ struct BookmarkCardView: View {
             
             // Title
             Text(paper.title)
-                .font(.system(size: 16, weight: .semibold, design: .serif))
-                .foregroundStyle(Color(hex: "111111"))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                 .lineLimit(3)
             
             // Authors
             Text(paper.authors.prefix(3).joined(separator: ", ") + (paper.authors.count > 3 ? " et al." : ""))
-                .font(.system(size: 13))
-                .foregroundStyle(Color(hex: "888888"))
+                .font(AppTheme.Typography.caption)
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                 .lineLimit(1)
             
             // Bottom row: date + actions
             HStack {
                 Text(formatDate(paper.publishedDate))
                     .font(.system(size: 12))
-                    .foregroundStyle(Color(hex: "AAAAAA"))
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                 
                 Spacer()
                 
@@ -143,7 +145,7 @@ struct BookmarkCardView: View {
                 } label: {
                     Image(systemName: "doc.text")
                         .font(.system(size: 15))
-                        .foregroundStyle(Color(hex: "1E3A5F"))
+                        .foregroundStyle(AppTheme.Colors.accent)
                         .frame(width: 36, height: 36)
                         .contentShape(Rectangle())
                 }
@@ -155,7 +157,7 @@ struct BookmarkCardView: View {
                 } label: {
                     Image(systemName: "heart.slash")
                         .font(.system(size: 15))
-                        .foregroundStyle(Color(hex: "FF6B6B"))
+                        .foregroundStyle(AppTheme.Colors.destructive(for: colorScheme))
                         .frame(width: 36, height: 36)
                         .contentShape(Rectangle())
                 }
@@ -163,8 +165,8 @@ struct BookmarkCardView: View {
             }
         }
         .padding(16)
-        .background(Color.white)
-        .clipShape(.rect(cornerRadius: 12))
+        .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
         .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 2)
         .confirmationDialog("取消收藏", isPresented: $showRemoveConfirmation) {
             Button("取消收藏", role: .destructive) {
