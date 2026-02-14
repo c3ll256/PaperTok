@@ -53,10 +53,6 @@ struct BookmarksView: View {
             Text("暂无收藏")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Color(hex: "111111"))
-            
-            Text("浏览论文时点击 ❤️ 按钮即可收藏")
-                .font(.system(size: 15))
-                .foregroundStyle(Color(hex: "888888"))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
