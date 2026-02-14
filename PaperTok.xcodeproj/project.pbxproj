@@ -3,14 +3,16 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		025C351E3A086651814F2A0A /* UserAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 816E96201E32BA6FEF7AD14C /* UserAction.swift */; };
+		0A1B2C3D4E5F6A7B8C9D0E1F /* BookmarksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* BookmarksView.swift */; };
 		1D004A9E750491A213988762 /* LLMProviderAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFB72C65D32D2855BC62120C /* LLMProviderAdapter.swift */; };
 		282DC4AF17B4CF7FBE65C74E /* ArxivService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716EA10FDCCF8616A28B6BE5 /* ArxivService.swift */; };
 		3888B23D442698F2B13C7255 /* SummaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D24F1FAC870435B6EBE4AE /* SummaryService.swift */; };
+		3BA904392F40C8A60063867E /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3BA904382F40C8A60063867E /* AppIcon.icon */; };
 		6375608B36E34B17F7ED397D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E21E04680F7877FEDECC82 /* OnboardingView.swift */; };
 		7DF1D6118461F109A97CFA31 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0556E246F1DF0D9710A9EE0F /* Assets.xcassets */; };
 		7FA5D3FC87BD9D05CDFE9F10 /* PaperTokApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74E9EFFE09330A0653A6D74 /* PaperTokApp.swift */; };
@@ -30,6 +32,7 @@
 		0556E246F1DF0D9710A9EE0F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		12575A1A9044DC011FAE75F2 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		3420D2D37082FAF093988869 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		3BA904382F40C8A60063867E /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		48E21E04680F7877FEDECC82 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		5BC9FCEE774D843451DD123A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		60D24F1FAC870435B6EBE4AE /* SummaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryService.swift; sourceTree = "<group>"; };
@@ -37,9 +40,10 @@
 		716EA10FDCCF8616A28B6BE5 /* ArxivService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArxivService.swift; sourceTree = "<group>"; };
 		7C2A76614022181619D414A5 /* RankingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEngine.swift; sourceTree = "<group>"; };
 		816E96201E32BA6FEF7AD14C /* UserAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAction.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* BookmarksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarksView.swift; sourceTree = "<group>"; };
 		B74E9EFFE09330A0653A6D74 /* PaperTokApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperTokApp.swift; sourceTree = "<group>"; };
 		B870718F7A8DB4904A8BC730 /* PaperCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperCardView.swift; sourceTree = "<group>"; };
-		D48E7498C6BF038A5460F901 /* PaperTok.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PaperTok.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D48E7498C6BF038A5460F901 /* PaperTok.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PaperTok.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EFB72C65D32D2855BC62120C /* LLMProviderAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProviderAdapter.swift; sourceTree = "<group>"; };
 		EFC9258A3086E45F666E9ECB /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		F4F5B28E4FA8E1D469FBC90F /* Paper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paper.swift; sourceTree = "<group>"; };
@@ -49,6 +53,7 @@
 		1D9C9F51CFC788170D3537F5 = {
 			isa = PBXGroup;
 			children = (
+				3BA904382F40C8A60063867E /* AppIcon.icon */,
 				0556E246F1DF0D9710A9EE0F /* Assets.xcassets */,
 				BB4B2219BE2A51706E3464AC /* Models */,
 				D1252689B6D80A93750E1C88 /* PaperTok */,
@@ -94,12 +99,21 @@
 		97CAB7E7F89AB1FEB7E252B9 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				B2C3D4E5F6A7B8C9D0E1F2A3 /* Bookmarks */,
 				C1D19CEFB2A58416730CA942 /* Components */,
 				7E3656C4C293EE76468AEBAC /* Feed */,
 				4B0A22185C6FF2646952F814 /* Onboarding */,
 				D3B6D59E5A8CB10F83514F75 /* Settings */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* Bookmarks */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* BookmarksView.swift */,
+			);
+			path = Bookmarks;
 			sourceTree = "<group>";
 		};
 		BB4B2219BE2A51706E3464AC /* Models */ = {
@@ -126,10 +140,6 @@
 			children = (
 				5BC9FCEE774D843451DD123A /* ContentView.swift */,
 				B74E9EFFE09330A0653A6D74 /* PaperTokApp.swift */,
-				BB4B2219BE2A51706E3464AC /* Models */,
-				208BB7BBB33831604B729A8D /* Security */,
-				E0CB1BD3ACFF5084D8CA222E /* Services */,
-				97CAB7E7F89AB1FEB7E252B9 /* Views */,
 			);
 			name = PaperTok;
 			path = .;
@@ -194,7 +204,6 @@
 			);
 			mainGroup = 1D9C9F51CFC788170D3537F5;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -209,6 +218,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7DF1D6118461F109A97CFA31 /* Assets.xcassets in Resources */,
+				3BA904392F40C8A60063867E /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -220,6 +230,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				282DC4AF17B4CF7FBE65C74E /* ArxivService.swift in Sources */,
+				0A1B2C3D4E5F6A7B8C9D0E1F /* BookmarksView.swift in Sources */,
 				EF5C118762AEE0D5FADA4059 /* ContentView.swift in Sources */,
 				802EDD5B3BDF432B4DE17554 /* ErrorView.swift in Sources */,
 				9DA95C33A1CD7CF7C2D0CD62 /* FeedView.swift in Sources */,
@@ -303,8 +314,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 44522M79VS;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -322,8 +335,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 44522M79VS;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -10,6 +10,7 @@ struct PaperCardView: View {
     @State private var isGeneratingSummary = false
     @State private var showFullAbstract = false
     @State private var startTime = Date()
+    @State private var isFavorited = false
     
     var body: some View {
         ScrollView {
@@ -97,9 +98,14 @@ struct PaperCardView: View {
                 }
                 .padding(24)
                 
-                // Bottom hint: swipe down for next article
-                NextArticleHintView()
-                    .padding(.bottom, 120) // Extra padding for bottom bar
+                // Bottom actions + next article hint
+                PaperBottomActionsView(
+                    paper: paper,
+                    isFavorited: $isFavorited,
+                    onToggleFavorite: toggleFavorite,
+                    onOpenOriginal: openOriginalPaper
+                )
+                .padding(.bottom, 80) // Extra padding for bottom bar
             }
         }
         .scrollIndicators(.hidden)
@@ -107,6 +113,7 @@ struct PaperCardView: View {
         .background(Color(hex: "F7F5F2"))
         .task {
             loadSummary()
+            loadFavoriteStatus()
             startTime = Date()
             
             // Auto-generate summary if it doesn't exist
@@ -182,6 +189,45 @@ struct PaperCardView: View {
         }
         
         try? modelContext.save()
+    }
+    
+    private func loadFavoriteStatus() {
+        let arxivId = paper.arxivId
+        let descriptor = FetchDescriptor<UserAction>(
+            predicate: #Predicate { $0.arxivId == arxivId }
+        )
+        if let action = try? modelContext.fetch(descriptor).first {
+            isFavorited = action.isFavorited
+        } else {
+            isFavorited = false
+        }
+    }
+    
+    private func toggleFavorite() {
+        let arxivId = paper.arxivId
+        let descriptor = FetchDescriptor<UserAction>(
+            predicate: #Predicate { $0.arxivId == arxivId }
+        )
+        
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
+        if let action = try? modelContext.fetch(descriptor).first {
+            action.isFavorited.toggle()
+            isFavorited = action.isFavorited
+            action.updatedAt = Date()
+        } else {
+            let newAction = UserAction(arxivId: paper.arxivId, isFavorited: true)
+            modelContext.insert(newAction)
+            isFavorited = true
+        }
+        try? modelContext.save()
+    }
+    
+    private func openOriginalPaper() {
+        if let url = URL(string: paper.pdfURL) {
+            UIApplication.shared.open(url)
+        }
     }
     
     private func formatDate(_ date: Date) -> String {
@@ -311,30 +357,73 @@ struct TermCardView: View {
     }
 }
 
-struct NextArticleHintView: View {
-    @State private var animateArrow = false
+struct PaperBottomActionsView: View {
+    let paper: Paper
+    @Binding var isFavorited: Bool
+    let onToggleFavorite: () -> Void
+    let onOpenOriginal: () -> Void
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
             Divider()
-                .padding(.horizontal, 40)
+                .padding(.horizontal, 24)
             
+            // Action buttons
+            HStack(spacing: 16) {
+                // 喜欢按钮
+                Button(action: onToggleFavorite) {
+                    HStack(spacing: 6) {
+                        Image(systemName: isFavorited ? "heart.fill" : "heart")
+                            .font(.system(size: 16))
+                            .symbolEffect(.bounce, value: isFavorited)
+                        Text(isFavorited ? "已喜欢" : "喜欢")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundStyle(isFavorited ? Color.red : Color(hex: "555555"))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(
+                        isFavorited
+                            ? Color.red.opacity(0.08)
+                            : Color(hex: "1E3A5F").opacity(0.05)
+                    )
+                    .clipShape(.rect(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                
+                // 查看原文按钮
+                Button(action: onOpenOriginal) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 16))
+                        Text("查看原文")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundStyle(Color(hex: "555555"))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Color(hex: "1E3A5F").opacity(0.05))
+                    .clipShape(.rect(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
+            
+            // Next article hint
             VStack(spacing: 6) {
                 Image(systemName: "chevron.compact.down")
                     .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(Color(hex: "AAAAAA"))
+                    .foregroundStyle(Color(hex: "CCCCCC"))
                 
                 Text("继续下滑，阅读下一篇")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color(hex: "AAAAAA"))
+                    .foregroundStyle(Color(hex: "CCCCCC"))
             }
-            .padding(.top, 12)
             .padding(.bottom, 8)
         }
         .frame(maxWidth: .infinity)
-        .onAppear {
-            animateArrow = true
-        }
     }
 }
 

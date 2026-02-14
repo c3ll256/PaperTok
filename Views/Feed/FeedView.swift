@@ -13,12 +13,7 @@ struct FeedView: View {
     @State private var showSettings = false
     @State private var errorMessage: String?
     @State private var showError = false
-    @State private var isFavorited = false
-    
-    private var currentPaper: Paper? {
-        guard !rankedPapers.isEmpty, currentIndex >= 0, currentIndex < rankedPapers.count else { return nil }
-        return rankedPapers[currentIndex]
-    }
+    @State private var showBookmarks = false
     
     var body: some View {
         NavigationStack {
@@ -68,14 +63,15 @@ struct FeedView: View {
             } message: {
                 Text(errorMessage ?? "未知错误")
             }
+            .sheet(isPresented: $showBookmarks) {
+                BookmarksView()
+            }
             .task {
                 if hasConfiguredAPI && rankedPapers.isEmpty {
                     loadPapers()
                 }
             }
-            .onChange(of: currentIndex) { _, _ in
-                loadFavoriteStatus()
-            }
+            
         }
     }
     
@@ -84,7 +80,7 @@ struct FeedView: View {
     @ViewBuilder
     private var bottomToolbar: some View {
         GeometryReader { geo in
-            let barWidth = geo.size.width * 2.0 / 3.0
+            let barWidth = geo.size.width * 0.55
             
             if #available(iOS 26, *) {
                 HStack {
@@ -101,23 +97,11 @@ struct FeedView: View {
                         }
                         .buttonStyle(ToolbarButtonStyle())
                         
-                        // 收藏
+                        // 收藏夹
                         Button {
-                            toggleFavorite()
+                            showBookmarks = true
                         } label: {
-                            Image(systemName: isFavorited ? "heart.fill" : "heart")
-                                .font(.system(size: 20))
-                                .foregroundStyle(isFavorited ? Color.red : Color(hex: "1E3A5F"))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                        }
-                        .buttonStyle(ToolbarButtonStyle())
-                        
-                        // 查看原文
-                        Button {
-                            openOriginalPaper()
-                        } label: {
-                            Image(systemName: "doc.text")
+                            Image(systemName: "archivebox")
                                 .font(.system(size: 20))
                                 .foregroundStyle(Color(hex: "1E3A5F"))
                                 .frame(maxWidth: .infinity)
@@ -125,11 +109,11 @@ struct FeedView: View {
                         }
                         .buttonStyle(ToolbarButtonStyle())
                         
-                        // 刷新
+                        // 拉取新内容
                         Button {
                             loadPapers()
                         } label: {
-                            Image(systemName: "arrow.clockwise")
+                            Image(systemName: "arrow.2.circlepath.circle")
                                 .font(.system(size: 20))
                                 .foregroundStyle(Color(hex: "1E3A5F"))
                                 .frame(maxWidth: .infinity)
@@ -158,20 +142,9 @@ struct FeedView: View {
                         .buttonStyle(ToolbarButtonStyle())
                         
                         Button {
-                            toggleFavorite()
+                            showBookmarks = true
                         } label: {
-                            Image(systemName: isFavorited ? "heart.fill" : "heart")
-                                .font(.system(size: 20))
-                                .foregroundStyle(isFavorited ? Color.red : Color(hex: "1E3A5F"))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                        }
-                        .buttonStyle(ToolbarButtonStyle())
-                        
-                        Button {
-                            openOriginalPaper()
-                        } label: {
-                            Image(systemName: "doc.text")
+                            Image(systemName: "archivebox")
                                 .font(.system(size: 20))
                                 .foregroundStyle(Color(hex: "1E3A5F"))
                                 .frame(maxWidth: .infinity)
@@ -182,7 +155,7 @@ struct FeedView: View {
                         Button {
                             loadPapers()
                         } label: {
-                            Image(systemName: "arrow.clockwise")
+                            Image(systemName: "arrow.2.circlepath.circle")
                                 .font(.system(size: 20))
                                 .foregroundStyle(Color(hex: "1E3A5F"))
                                 .frame(maxWidth: .infinity)
@@ -205,45 +178,6 @@ struct FeedView: View {
     }
     
     // MARK: - Actions
-    
-    private func loadFavoriteStatus() {
-        guard let paper = currentPaper else { return }
-        let arxivId = paper.arxivId
-        let descriptor = FetchDescriptor<UserAction>(
-            predicate: #Predicate { $0.arxivId == arxivId }
-        )
-        if let action = try? modelContext.fetch(descriptor).first {
-            isFavorited = action.isFavorited
-        } else {
-            isFavorited = false
-        }
-    }
-    
-    private func toggleFavorite() {
-        guard let paper = currentPaper else { return }
-        let arxivId = paper.arxivId
-        let descriptor = FetchDescriptor<UserAction>(
-            predicate: #Predicate { $0.arxivId == arxivId }
-        )
-        
-        if let action = try? modelContext.fetch(descriptor).first {
-            action.isFavorited.toggle()
-            isFavorited = action.isFavorited
-            action.updatedAt = Date()
-        } else {
-            let newAction = UserAction(arxivId: paper.arxivId, isFavorited: true)
-            modelContext.insert(newAction)
-            isFavorited = true
-        }
-        try? modelContext.save()
-    }
-    
-    private func openOriginalPaper() {
-        guard let paper = currentPaper else { return }
-        if let url = URL(string: paper.pdfURL) {
-            UIApplication.shared.open(url)
-        }
-    }
     
     private func loadPapers() {
         isLoading = true
@@ -338,6 +272,7 @@ struct EmptyStateView: View {
 struct ToolbarButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .contentShape(Rectangle())
             .scaleEffect(configuration.isPressed ? 0.75 : 1.0)
             .opacity(configuration.isPressed ? 0.5 : 1.0)
             .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
