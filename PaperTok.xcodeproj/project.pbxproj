@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,6 +12,7 @@
 		282DC4AF17B4CF7FBE65C74E /* ArxivService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716EA10FDCCF8616A28B6BE5 /* ArxivService.swift */; };
 		32940F6F2DEB9A39AA056F9B /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92574EEA79846E850174C467 /* AppTheme.swift */; };
 		3888B23D442698F2B13C7255 /* SummaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D24F1FAC870435B6EBE4AE /* SummaryService.swift */; };
+		3BA9043B2F40D0FF0063867E /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3BA9043A2F40D0FF0063867E /* AppIcon.icon */; };
 		6375608B36E34B17F7ED397D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E21E04680F7877FEDECC82 /* OnboardingView.swift */; };
 		723343577F70BE1FD2A488AA /* BookmarksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72C5A54E0FF63EA30998538 /* BookmarksView.swift */; };
 		7DF1D6118461F109A97CFA31 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0556E246F1DF0D9710A9EE0F /* Assets.xcassets */; };
@@ -32,6 +33,7 @@
 		0556E246F1DF0D9710A9EE0F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		12575A1A9044DC011FAE75F2 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		3420D2D37082FAF093988869 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		3BA9043A2F40D0FF0063867E /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		48E21E04680F7877FEDECC82 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		5BC9FCEE774D843451DD123A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		60D24F1FAC870435B6EBE4AE /* SummaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryService.swift; sourceTree = "<group>"; };
@@ -54,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				0556E246F1DF0D9710A9EE0F /* Assets.xcassets */,
+				3BA9043A2F40D0FF0063867E /* AppIcon.icon */,
 				BB4B2219BE2A51706E3464AC /* Models */,
 				D1252689B6D80A93750E1C88 /* PaperTok */,
 				208BB7BBB33831604B729A8D /* Security */,
@@ -140,11 +143,6 @@
 			children = (
 				5BC9FCEE774D843451DD123A /* ContentView.swift */,
 				B74E9EFFE09330A0653A6D74 /* PaperTokApp.swift */,
-				BB4B2219BE2A51706E3464AC /* Models */,
-				208BB7BBB33831604B729A8D /* Security */,
-				E0CB1BD3ACFF5084D8CA222E /* Services */,
-				D1D7D956182729A5EFA1F02F /* Theme */,
-				97CAB7E7F89AB1FEB7E252B9 /* Views */,
 			);
 			name = PaperTok;
 			path = .;
@@ -217,7 +215,6 @@
 			);
 			mainGroup = 1D9C9F51CFC788170D3537F5;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -232,6 +229,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7DF1D6118461F109A97CFA31 /* Assets.xcassets in Resources */,
+				3BA9043B2F40D0FF0063867E /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

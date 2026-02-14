@@ -24,7 +24,7 @@ struct PaperCardView: View {
                                 ForEach(paper.categories, id: \.self) { category in
                                     Text(category)
                                         .font(AppTheme.Typography.tag)
-                                        .foregroundStyle(AppTheme.Colors.accent)
+                                        .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
                                         .background(AppTheme.Colors.accentSubtle(for: colorScheme))
@@ -74,10 +74,10 @@ struct PaperCardView: View {
                                 Text("生成 AI 摘要")
                             }
                             .font(AppTheme.Typography.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(AppTheme.Colors.accent)
+                            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
                             .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                         }
                     }
@@ -267,7 +267,7 @@ struct SummaryContentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "quote.bubble")
                             .font(.system(size: 16))
-                            .foregroundStyle(AppTheme.Colors.accent)
+                            .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
                         Text("一句话总结")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
@@ -275,7 +275,7 @@ struct SummaryContentView: View {
                     
                     Text(oneLiner)
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(AppTheme.Colors.accent)
+                        .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
                         .italic()
                 }
                 .padding(16)
@@ -288,7 +288,7 @@ struct SummaryContentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "book")
                             .font(.system(size: 16))
-                            .foregroundStyle(AppTheme.Colors.accent)
+                            .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
                         Text("核心术语")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
@@ -314,7 +314,7 @@ struct SectionView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 16))
-                    .foregroundStyle(AppTheme.Colors.accent)
+                    .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
@@ -341,7 +341,7 @@ struct TermCardView: View {
                 
                 Text(term.termEnglish)
                     .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.accent)
+                    .foregroundStyle(AppTheme.Colors.accent(for: colorScheme))
             }
             
             Text(term.explanation)

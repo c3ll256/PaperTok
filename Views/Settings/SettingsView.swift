@@ -149,16 +149,16 @@ struct SettingsView: View {
                             HStack {
                                 if isTestingConnection {
                                     ProgressView()
-                                        .tint(.white)
+                                        .tint(AppTheme.Colors.textPrimary(for: colorScheme))
                                 } else {
                                     Text("测试连接")
                                         .font(AppTheme.Typography.headline)
                                 }
                             }
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(AppTheme.Colors.accent)
+                            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
                             .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                         }
                         .disabled(apiKey.isEmpty || isTestingConnection)
@@ -166,7 +166,7 @@ struct SettingsView: View {
                         if showTestResult {
                             Text(testResultMessage)
                                 .font(AppTheme.Typography.body)
-                                .foregroundStyle(testResultMessage.contains("成功") ? AppTheme.Colors.accent : AppTheme.Colors.destructive(for: colorScheme))
+                                .foregroundStyle(testResultMessage.contains("成功") ? AppTheme.Colors.accent(for: colorScheme) : AppTheme.Colors.destructive(for: colorScheme))
                                 .multilineTextAlignment(.center)
                         }
                     }
@@ -176,10 +176,10 @@ struct SettingsView: View {
                     Button(action: saveConfiguration) {
                         Text("保存配置")
                             .font(AppTheme.Typography.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(apiKey.isEmpty ? AppTheme.Colors.textTertiary(for: colorScheme) : AppTheme.Colors.accent)
+                            .background(apiKey.isEmpty ? AppTheme.Colors.surfacePrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
                             .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                     }
                     .disabled(apiKey.isEmpty)
@@ -236,14 +236,14 @@ struct SettingsView: View {
     }
     
     private func configureSegmentedControl() {
-        // Configure segmented control appearance
-        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(AppTheme.Colors.accent)
+        // Configure segmented control appearance - using system default colors
+        UISegmentedControl.appearance().selectedSegmentTintColor = nil // Use system default
         UISegmentedControl.appearance().setTitleTextAttributes([
-            .foregroundColor: UIColor.white,
+            .foregroundColor: UIColor.label,
             .font: UIFont.systemFont(ofSize: 15, weight: .medium)
         ], for: .selected)
         UISegmentedControl.appearance().setTitleTextAttributes([
-            .foregroundColor: UIColor(AppTheme.Colors.textPrimary(for: colorScheme)),
+            .foregroundColor: UIColor.secondaryLabel,
             .font: UIFont.systemFont(ofSize: 15, weight: .regular)
         ], for: .normal)
     }
@@ -449,7 +449,7 @@ struct CustomTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
             .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-            .tint(AppTheme.Colors.accent)
+            .tint(AppTheme.Colors.textPrimary(for: colorScheme))
             .padding(16)
             .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
             .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
@@ -523,10 +523,10 @@ struct CategorySelectionView: View {
                     Button(action: savePreferences) {
                         Text("保存")
                             .font(AppTheme.Typography.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(selectedCategories.isEmpty ? AppTheme.Colors.textTertiary(for: colorScheme) : AppTheme.Colors.accent)
+                            .background(selectedCategories.isEmpty ? AppTheme.Colors.surfacePrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
                             .cornerRadius(AppTheme.CornerRadius.card)
                     }
                     .disabled(selectedCategories.isEmpty)

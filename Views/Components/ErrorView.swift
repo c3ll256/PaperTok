@@ -123,9 +123,9 @@ struct ErrorView: View {
                     Button(action: action) {
                         Text(actionTitle)
                             .font(AppTheme.Typography.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
                             .frame(width: 200, height: 44)
-                            .background(AppTheme.Colors.accent)
+                            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
                             .cornerRadius(22)
                     }
                 }
@@ -134,13 +134,13 @@ struct ErrorView: View {
                     Button(action: retry) {
                         Text("重试")
                             .font(AppTheme.Typography.headline)
-                            .foregroundColor(AppTheme.Colors.accent)
+                            .foregroundColor(AppTheme.Colors.accent(for: colorScheme))
                             .frame(width: 200, height: 44)
                             .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
                             .cornerRadius(22)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 22)
-                                    .stroke(AppTheme.Colors.accent, lineWidth: 2)
+                                    .stroke(AppTheme.Colors.accent(for: colorScheme), lineWidth: 2)
                             )
                     }
                 }

@@ -63,6 +63,7 @@ struct OnboardingView: View {
                             }
                         }
                         .padding(.horizontal, 24)
+                        .padding(.vertical, 4)
                     }
                 }
                 
@@ -72,10 +73,10 @@ struct OnboardingView: View {
                 Button(action: savePreferences) {
                     Text("继续")
                         .font(AppTheme.Typography.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .background(selectedCategories.isEmpty ? AppTheme.Colors.textTertiary(for: colorScheme) : AppTheme.Colors.accent)
+                        .background(selectedCategories.isEmpty ? AppTheme.Colors.surfacePrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
                         .cornerRadius(AppTheme.CornerRadius.card)
                 }
                 .disabled(selectedCategories.isEmpty)
@@ -126,21 +127,21 @@ struct CategoryCard: View {
                     
                     Text(code)
                         .font(AppTheme.Typography.tag)
-                        .foregroundColor(AppTheme.Colors.accent)
+                        .foregroundColor(AppTheme.Colors.textTertiary(for: colorScheme))
                 }
                 
                 Spacer()
                 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 24))
-                    .foregroundColor(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.textTertiary(for: colorScheme))
+                    .foregroundColor(isSelected ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
             }
             .padding(16)
-            .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+            .background(isSelected ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.surfacePrimary(for: colorScheme))
             .cornerRadius(AppTheme.CornerRadius.card)
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
-                    .stroke(isSelected ? AppTheme.Colors.accent : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? AppTheme.Colors.border(for: colorScheme) : Color.clear, lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())

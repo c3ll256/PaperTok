@@ -18,7 +18,7 @@ struct LoadingView: View {
                 
                 Circle()
                     .trim(from: 0, to: 0.7)
-                    .stroke(AppTheme.Colors.accent, lineWidth: 3)
+                    .stroke(AppTheme.Colors.accent(for: colorScheme), lineWidth: 3)
                     .frame(width: 60, height: 60)
                     .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
                     .animation(
@@ -51,7 +51,7 @@ struct PulsingLoadingView: View {
         VStack(spacing: 20) {
             Image(systemName: "sparkles")
                 .font(.system(size: 50))
-                .foregroundColor(AppTheme.Colors.accent)
+                .foregroundColor(AppTheme.Colors.accent(for: colorScheme))
                 .scaleEffect(scale)
                 .animation(
                     Animation.easeInOut(duration: 1.0)

@@ -222,6 +222,7 @@ struct FeedView: View {
 }
 
 struct SetupPromptView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let onSetup: () -> Void
     
     var body: some View {
@@ -232,9 +233,9 @@ struct SetupPromptView: View {
                     Text("配置模型")
                 }
                 .font(AppTheme.Typography.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                 .frame(width: 160, height: 50)
-                .background(AppTheme.Colors.accent)
+                .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
                 .clipShape(.rect(cornerRadius: 25))
             }
         }
@@ -262,9 +263,9 @@ struct EmptyStateView: View {
             Button(action: onRefresh) {
                 Text("刷新")
                     .font(AppTheme.Typography.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                     .frame(width: 120, height: 44)
-                    .background(AppTheme.Colors.accent)
+                    .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
                     .clipShape(.rect(cornerRadius: 22))
             }
         }

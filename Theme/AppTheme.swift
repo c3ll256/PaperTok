@@ -5,61 +5,119 @@ import SwiftUI
 enum AppTheme {
     
     // MARK: - Colors
+    // Based on ChatGPT Apps SDK Design System
     
     enum Colors {
-        /// Page background - pure white/near-black
+        // MARK: - Background Colors
+        
+        /// Primary background - pure white in light mode, #171717 in dark mode
         static func background(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "171717") : Color(hex: "FFFFFF")
+        }
+        
+        /// Secondary background - #F0F0F0 in light mode, #212121 in dark mode
+        static func surfacePrimary(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "212121") : Color(hex: "F0F0F0")
+        }
+        
+        /// Tertiary background - #E8E8E8 in light mode, #2C2C2C in dark mode
+        static func surfaceSecondary(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "2C2C2C") : Color(hex: "E8E8E8")
+        }
+        
+        // MARK: - Text Colors
+        
+        /// Primary text - #0D0D0D in light mode, #FFFFFF in dark mode
+        static func textPrimary(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "FFFFFF") : Color(hex: "0D0D0D")
+        }
+        
+        /// Secondary text - #676767 in light mode, #B4B4B4 in dark mode
+        static func textSecondary(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "B4B4B4") : Color(hex: "676767")
+        }
+        
+        /// Tertiary text - #ACACAC in light mode, #676767 in dark mode
+        static func textTertiary(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "676767") : Color(hex: "ACACAC")
+        }
+        
+        /// Inverted text - always white in light mode, always black in dark mode
+        static func textInverted(for colorScheme: ColorScheme) -> Color {
             colorScheme == .dark ? Color(hex: "0D0D0D") : Color(hex: "FFFFFF")
         }
         
-        /// Card/surface background
-        static func surfacePrimary(for colorScheme: ColorScheme) -> Color {
-            colorScheme == .dark ? Color(hex: "1A1A1A") : Color(hex: "F7F7F8")
+        // MARK: - Icon Colors
+        
+        /// Primary icon color - matches text primary
+        static func iconPrimary(for colorScheme: ColorScheme) -> Color {
+            textPrimary(for: colorScheme)
         }
         
-        /// Nested surfaces, input fields
-        static func surfaceSecondary(for colorScheme: ColorScheme) -> Color {
-            colorScheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "ECECF1")
+        /// Secondary icon color - matches text secondary
+        static func iconSecondary(for colorScheme: ColorScheme) -> Color {
+            textSecondary(for: colorScheme)
         }
         
-        /// Headings, body text
-        static func textPrimary(for colorScheme: ColorScheme) -> Color {
-            colorScheme == .dark ? Color(hex: "ECECF1") : Color(hex: "0D0D0D")
+        /// Tertiary icon color - matches text tertiary
+        static func iconTertiary(for colorScheme: ColorScheme) -> Color {
+            textTertiary(for: colorScheme)
         }
         
-        /// Subtitles, metadata
-        static func textSecondary(for colorScheme: ColorScheme) -> Color {
-            colorScheme == .dark ? Color(hex: "8E8EA0") : Color(hex: "6E6E80")
+        /// Inverted icon color - matches text inverted
+        static func iconInverted(for colorScheme: ColorScheme) -> Color {
+            textInverted(for: colorScheme)
         }
         
-        /// Hints, timestamps
-        static func textTertiary(for colorScheme: ColorScheme) -> Color {
-            colorScheme == .dark ? Color(hex: "6E6E80") : Color(hex: "8E8EA0")
+        // MARK: - Accent Colors
+        
+        /// Blue accent - #1E88E5 in light mode, #5DADE2 in dark mode
+        static func accentBlue(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "5DADE2") : Color(hex: "1E88E5")
         }
         
-        /// Primary accent - ChatGPT green
-        static let accent = Color(hex: "10A37F")
+        /// Red accent - #E53935 in light mode, #F1948A in dark mode
+        static func accentRed(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "F1948A") : Color(hex: "E53935")
+        }
+        
+        /// Orange accent - #F57C00 in light mode, #F8B88B in dark mode
+        static func accentOrange(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "F8B88B") : Color(hex: "F57C00")
+        }
+        
+        /// Green accent - #00A67E in light mode, #66D9B5 in dark mode
+        static func accentGreen(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color(hex: "66D9B5") : Color(hex: "00A67E")
+        }
+        
+        /// Primary accent - defaults to blue (more suitable for academic app)
+        static func accent(for colorScheme: ColorScheme) -> Color {
+            accentBlue(for: colorScheme)
+        }
         
         /// Tag backgrounds, highlights
         static func accentSubtle(for colorScheme: ColorScheme) -> Color {
             colorScheme == .dark 
-                ? Color(hex: "10A37F").opacity(0.15)
-                : Color(hex: "10A37F").opacity(0.10)
+                ? Color(hex: "5DADE2").opacity(0.15)
+                : Color(hex: "1E88E5").opacity(0.10)
         }
+        
+        // MARK: - Utility Colors
         
         /// Dividers, input borders
         static func border(for colorScheme: ColorScheme) -> Color {
-            colorScheme == .dark ? Color(hex: "2F2F2F") : Color(hex: "E5E5E5")
+            colorScheme == .dark ? Color(hex: "2C2C2C") : Color(hex: "E8E8E8")
         }
         
-        /// Error, remove actions
+        /// Error, remove actions - uses red accent
         static func destructive(for colorScheme: ColorScheme) -> Color {
-            colorScheme == .dark ? Color(hex: "F87171") : Color(hex: "EF4444")
+            accentRed(for: colorScheme)
         }
         
-        /// Heart/favorite
+        /// Heart/favorite - uses red accent
         static func favorite(for colorScheme: ColorScheme) -> Color {
-            colorScheme == .dark ? Color(hex: "F87171") : Color(hex: "EF4444")
+            accentRed(for: colorScheme)
         }
     }
     
