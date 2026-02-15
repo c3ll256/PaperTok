@@ -318,7 +318,7 @@ struct FloatingMenuView: View {
                 .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                 .frame(width: 52, height: 52)
                 .contentShape(.circle)
-                .glassEffect(.tint(.blue), in: .circle)
+                .glassEffect(.regular.interactive(), in: .circle)
         } else {
             Image(systemName: isExpanded ? "xmark" : "ellipsis")
                 .contentTransition(.symbolEffect(.replace))
@@ -360,7 +360,7 @@ struct FloatingMenuItem: View {
             .padding(.horizontal, 16)
             .frame(height: 44)
             .contentShape(.capsule)
-            .glassEffect(.tint(.primary), in: .capsule)
+            .glassEffect(.regular.interactive(), in: .capsule)
         } else {
             HStack(spacing: 10) {
                 Image(systemName: icon)
