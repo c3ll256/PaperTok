@@ -18,7 +18,12 @@ struct OnboardingView: View {
         ("cs.CR", "密码学", "Cryptography and Security"),
         ("cs.DB", "数据库", "Databases"),
         ("cs.DC", "分布式计算", "Distributed Computing"),
-        ("cs.IR", "信息检索", "Information Retrieval")
+        ("cs.IR", "信息检索", "Information Retrieval"),
+        ("q-bio.BM", "生物分子", "Biomolecules"),
+        ("q-bio.GN", "基因组学", "Genomics"),
+        ("q-bio.NC", "神经科学", "Neurons and Cognition"),
+        ("q-bio.QM", "定量方法（生物）", "Quantitative Methods"),
+        ("cs.CE", "计算工程与生物信息", "Computational Engineering & Bioinformatics")
     ]
     
     var body: some View {

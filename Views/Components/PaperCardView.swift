@@ -9,6 +9,7 @@ struct PaperCardView: View {
     @State private var summary: PaperSummary?
     @State private var terms: [TermGlossaryItem] = []
     @State private var isGeneratingSummary = false
+    @State private var isTranslatingTitle = false
     @State private var showFullAbstract = false
     @State private var startTime = Date()
     @State private var isFavorited = false
@@ -38,11 +39,33 @@ struct PaperCardView: View {
                         .scrollIndicators(.hidden)
                         .padding(.top, 60)
                     
-                    // Title
-                    Text(paper.title)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                        .lineLimit(3)
+                    // Title - bilingual (Chinese + English)
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let chineseTitle = summary?.titleChinese, !chineseTitle.isEmpty {
+                            Text(chineseTitle)
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        
+                        Text(paper.title)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(summary?.titleChinese != nil ? AppTheme.Colors.textSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    
+                    // Institutions
+                    if let institutions = summary?.institutions, !institutions.isEmpty, institutions != "未明确标注" {
+                        HStack(spacing: 6) {
+                            Image(systemName: "building.columns")
+                                .font(.system(size: 13))
+                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                            Text(institutions)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                     
                     // Authors and date
                     VStack(alignment: .leading, spacing: 4) {
@@ -124,8 +147,14 @@ struct PaperCardView: View {
             loadFavoriteStatus()
             startTime = Date()
             
-            // Auto-generate summary if it doesn't exist
-            if summary == nil && !isGeneratingSummary {
+            // Fast path: translate title first so it shows immediately
+            if summary?.titleChinese == nil && !isTranslatingTitle {
+                translateTitleFirst()
+            }
+            
+            // Then generate full summary if needed
+            let hasFullSummary = summary?.problem != nil
+            if !hasFullSummary && !isGeneratingSummary {
                 generateSummary()
             }
         }
@@ -154,6 +183,27 @@ struct PaperCardView: View {
         
         if let fetchedTerms = try? modelContext.fetch(descriptor) {
             terms = fetchedTerms.sorted { $0.weight > $1.weight }
+        }
+    }
+    
+    private func translateTitleFirst() {
+        isTranslatingTitle = true
+        
+        Task {
+            do {
+                let summaryService = SummaryService(modelContext: modelContext)
+                let partialSummary = try await summaryService.translateTitle(for: paper)
+                
+                await MainActor.run {
+                    summary = partialSummary
+                    isTranslatingTitle = false
+                }
+            } catch {
+                print("Error translating title: \(error)")
+                await MainActor.run {
+                    isTranslatingTitle = false
+                }
+            }
         }
     }
     
@@ -286,10 +336,6 @@ struct SummaryContentView: View {
             
             if let result = summary.result {
                 SectionView(title: "结果", content: result, icon: "chart.bar")
-            }
-            
-            if let whyItMatters = summary.whyItMatters {
-                SectionView(title: "意义", content: whyItMatters, icon: "star")
             }
             
             if let oneLiner = summary.oneLiner {

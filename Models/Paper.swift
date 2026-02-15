@@ -30,10 +30,11 @@ final class PaperSummary {
     var arxivId: String = ""
     var modelName: String = ""
     var summaryText: String = ""
+    var titleChinese: String?
+    var institutions: String?
     var problem: String?
     var method: String?
     var result: String?
-    var whyItMatters: String?
     var oneLiner: String?
     var updatedAt: Date = Date()
     
