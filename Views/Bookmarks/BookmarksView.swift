@@ -97,6 +97,7 @@ struct BookmarkCardView: View {
     let onRemove: () -> Void
     
     @State private var showRemoveConfirmation = false
+    @State private var safariURL: URL?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -140,7 +141,7 @@ struct BookmarkCardView: View {
                 // Open PDF
                 Button {
                     if let url = URL(string: paper.pdfURL) {
-                        UIApplication.shared.open(url)
+                        safariURL = url
                     }
                 } label: {
                     Image(systemName: "doc.text")
@@ -177,6 +178,10 @@ struct BookmarkCardView: View {
             Button("取消", role: .cancel) { }
         } message: {
             Text("确定要取消收藏这篇论文吗？")
+        }
+        .sheet(item: $safariURL) { url in
+            SafariView(url: url)
+                .ignoresSafeArea()
         }
     }
     

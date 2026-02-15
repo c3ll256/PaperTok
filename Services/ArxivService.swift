@@ -4,21 +4,38 @@ import SwiftData
 struct ArxivQuery {
     let categories: [String]
     let maxResults: Int
+    let start: Int // pagination offset
     let sortBy: String // "submittedDate", "lastUpdatedDate", "relevance"
     let sortOrder: String // "descending", "ascending"
+    
+    init(categories: [String], maxResults: Int = 10, start: Int = 0, sortBy: String = "submittedDate", sortOrder: String = "descending") {
+        self.categories = categories
+        self.maxResults = maxResults
+        self.start = start
+        self.sortBy = sortBy
+        self.sortOrder = sortOrder
+    }
 }
 
-class ArxivService {
+@ModelActor
+actor ArxivService {
     private let baseURL = "https://export.arxiv.org/api/query"
-    private let modelContext: ModelContext
     private let maxRetries = 5
     private let baseDelay: UInt64 = 10_000_000_000 // 10 seconds (ArXiv recommends ≥10s between requests)
     
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
-    }
+    // Dedicated URLSession with generous timeouts for arXiv
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 90   // per-request timeout
+        config.timeoutIntervalForResource = 120 // total resource timeout
+        config.waitsForConnectivity = true       // wait for network instead of failing immediately
+        return URLSession(configuration: config)
+    }()
     
-    func fetchPapers(query: ArxivQuery) async throws -> [Paper] {
+    private var session: URLSession { Self.session }
+    
+    /// Fetches papers from arXiv, persists them, and returns their arxivId strings.
+    func fetchPapers(query: ArxivQuery) async throws -> [String] {
         // Validate categories
         guard !query.categories.isEmpty else {
             print("❌ No categories selected")
@@ -38,12 +55,12 @@ class ArxivService {
                     print("⏳ Rate limited. Waiting \(delaySec) seconds before retry \(attempt + 1)/\(maxRetries)...")
                     try await Task.sleep(nanoseconds: delay)
                 }
-            } catch let urlError as URLError where urlError.code == .timedOut || urlError.code == .networkConnectionLost {
+            } catch let urlError as URLError where [.timedOut, .networkConnectionLost, .cannotConnectToHost, .notConnectedToInternet, .dnsLookupFailed].contains(urlError.code) {
                 lastError = urlError
                 if attempt < maxRetries - 1 {
                     let delay = baseDelay * UInt64(pow(1.5, Double(attempt)))
                     let delaySec = delay / 1_000_000_000
-                    print("⏳ Network timeout. Waiting \(delaySec) seconds before retry \(attempt + 1)/\(maxRetries)...")
+                    print("⏳ Network error (\(urlError.code.rawValue)). Waiting \(delaySec) seconds before retry \(attempt + 1)/\(maxRetries)...")
                     try await Task.sleep(nanoseconds: delay)
                 }
             }
@@ -52,13 +69,14 @@ class ArxivService {
         throw lastError
     }
     
-    private func fetchPapersInternal(query: ArxivQuery, attempt: Int) async throws -> [Paper] {
+    private func fetchPapersInternal(query: ArxivQuery, attempt: Int) async throws -> [String] {
         // Build search query
         let categoryQuery = query.categories.map { "cat:\($0)" }.joined(separator: " OR ")
         
         var components = URLComponents(string: baseURL)!
         components.queryItems = [
             URLQueryItem(name: "search_query", value: categoryQuery),
+            URLQueryItem(name: "start", value: "\(query.start)"),
             URLQueryItem(name: "max_results", value: "\(query.maxResults)"),
             URLQueryItem(name: "sortBy", value: query.sortBy),
             URLQueryItem(name: "sortOrder", value: query.sortOrder)
@@ -74,10 +92,11 @@ class ArxivService {
         // Create a custom URLRequest with proper headers
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("PaperTok/1.0", forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 60
+        request.setValue("PaperTok/1.0 (iOS; mailto:papertok@example.com)", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/atom+xml", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 90
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             print("❌ Invalid response type")
@@ -111,10 +130,15 @@ class ArxivService {
         
         let papers = try parseArxivXML(data: data)
         
+        // Collect arxivIds for return value
+        var arxivIds: [String] = []
+        
         // Save to local database
         for paper in papers {
-            // Check if paper already exists
             let arxivId = paper.arxivId
+            arxivIds.append(arxivId)
+            
+            // Check if paper already exists — only insert new ones
             let descriptor = FetchDescriptor<Paper>(
                 predicate: #Predicate { $0.arxivId == arxivId }
             )
@@ -126,7 +150,8 @@ class ArxivService {
         
         try modelContext.save()
         
-        return papers
+        // Return plain arxivId strings — safe to pass across actor boundaries
+        return arxivIds
     }
     
     private func parseArxivXML(data: Data) throws -> [Paper] {

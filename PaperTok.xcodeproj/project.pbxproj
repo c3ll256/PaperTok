@@ -27,6 +27,7 @@
 		D58CDE5C3CBF9DDF2352BB01 /* RankingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2A76614022181619D414A5 /* RankingEngine.swift */; };
 		DA5A11827D2B4D58222FAFFF /* Paper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F5B28E4FA8E1D469FBC90F /* Paper.swift */; };
 		EF5C118762AEE0D5FADA4059 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BC9FCEE774D843451DD123A /* ContentView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E7F8091A2B3C4D5E6F7081 /* SafariView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +52,7 @@
 		EFB72C65D32D2855BC62120C /* LLMProviderAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProviderAdapter.swift; sourceTree = "<group>"; };
 		EFC9258A3086E45F666E9ECB /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		F4F5B28E4FA8E1D469FBC90F /* Paper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paper.swift; sourceTree = "<group>"; };
+		D6E7F8091A2B3C4D5E6F7081 /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -137,6 +139,7 @@
 				12575A1A9044DC011FAE75F2 /* ErrorView.swift */,
 				6200E89506BD64F2625E2EA1 /* LoadingView.swift */,
 				B870718F7A8DB4904A8BC730 /* PaperCardView.swift */,
+				D6E7F8091A2B3C4D5E6F7081 /* SafariView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -258,6 +261,7 @@
 				B3D1D0B8B36F05A404582370 /* PaperCardView.swift in Sources */,
 				7FA5D3FC87BD9D05CDFE9F10 /* PaperTokApp.swift in Sources */,
 				D58CDE5C3CBF9DDF2352BB01 /* RankingEngine.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* SafariView.swift in Sources */,
 				86A2F1268B518BFA80ADB601 /* SettingsView.swift in Sources */,
 				3888B23D442698F2B13C7255 /* SummaryService.swift in Sources */,
 				025C351E3A086651814F2A0A /* UserAction.swift in Sources */,

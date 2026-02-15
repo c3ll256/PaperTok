@@ -7,6 +7,8 @@ struct FeedView: View {
     @Query private var papers: [Paper]
     @Query private var preferences: [UserPreference]
     
+    private var modelContainer: ModelContainer { modelContext.container }
+    
     @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
     @AppStorage("preloadCount") private var preloadCount = 3
     @State private var currentIndex = 0
@@ -37,7 +39,7 @@ struct FeedView: View {
                     VerticalPagingView(
                         papers: rankedPapers,
                         currentIndex: $currentIndex,
-                        modelContext: modelContext,
+                        modelContainer: modelContainer,
                         preloadCount: preloadCount
                     )
                 }
@@ -202,21 +204,27 @@ struct FeedView: View {
                     return
                 }
                 
-                let arxivService = ArxivService(modelContext: modelContext)
+                let arxivService = ArxivService(modelContainer: modelContainer)
                 let query = ArxivQuery(
                     categories: preference.selectedCategories,
-                    maxResults: 50,
+                    maxResults: 10,
                     sortBy: "submittedDate",
                     sortOrder: "descending"
                 )
                 
-                let fetchedPapers = try await arxivService.fetchPapers(query: query)
+                let fetchedArxivIds = try await arxivService.fetchPapers(query: query)
                 
-                let rankingEngine = RankingEngine(modelContext: modelContext)
-                let ranked = try await rankingEngine.rankPapers(fetchedPapers)
+                let rankingEngine = RankingEngine(modelContainer: modelContainer)
+                let rankedArxivIds = try await rankingEngine.rankPapers(fetchedArxivIds)
                 
                 await MainActor.run {
-                    rankedPapers = ranked
+                    // Re-fetch papers from main context in ranked order
+                    rankedPapers = rankedArxivIds.compactMap { arxivId in
+                        let descriptor = FetchDescriptor<Paper>(
+                            predicate: #Predicate { $0.arxivId == arxivId }
+                        )
+                        return try? modelContext.fetch(descriptor).first
+                    }
                     isLoading = false
                 }
             } catch {
@@ -297,7 +305,7 @@ struct ToolbarButtonStyle: ButtonStyle {
 struct VerticalPagingView: View {
     let papers: [Paper]
     @Binding var currentIndex: Int
-    let modelContext: ModelContext
+    let modelContainer: ModelContainer
     let preloadCount: Int
     
     @State private var scrollPosition: Int?
@@ -309,7 +317,7 @@ struct VerticalPagingView: View {
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(papers.enumerated()), id: \.element.arxivId) { index, paper in
-                        PaperCardView(paper: paper, modelContext: modelContext)
+                        PaperCardView(paper: paper, modelContainer: modelContainer)
                             .frame(width: geometry.size.width, height: totalHeight)
                             .clipped()
                             .id(index)
@@ -348,7 +356,7 @@ struct VerticalPagingView: View {
             
             let paper = papers[i]
             Task {
-                let summaryService = SummaryService(modelContext: modelContext)
+                let summaryService = SummaryService(modelContainer: modelContainer)
                 
                 // 1. Fast title translation
                 _ = try? await summaryService.translateTitle(for: paper)

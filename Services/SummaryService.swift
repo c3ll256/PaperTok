@@ -1,13 +1,10 @@
 import Foundation
 import SwiftData
 
-class SummaryService {
-    private let modelContext: ModelContext
+@ModelActor
+actor SummaryService {
     
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
-    }
-    
+    @discardableResult
     func regenerateSummary(for paper: Paper) async throws -> PaperSummary {
         // Delete existing summary
         let arxivId = paper.arxivId
@@ -36,6 +33,7 @@ class SummaryService {
     
     /// Quick title-only translation. Creates or updates PaperSummary with just the Chinese title
     /// so the UI can show it immediately while the full analysis runs.
+    @discardableResult
     func translateTitle(for paper: Paper) async throws -> PaperSummary {
         let arxivId = paper.arxivId
         let descriptor = FetchDescriptor<PaperSummary>(
@@ -82,6 +80,7 @@ class SummaryService {
         }
     }
     
+    @discardableResult
     func generateSummary(for paper: Paper) async throws -> PaperSummary {
         // Check if a full summary already exists (has problem field filled)
         let arxivId = paper.arxivId
@@ -121,8 +120,11 @@ class SummaryService {
            - 在本文里的具体含义（不超过 40 字，说明在这篇论文中的特定用法或意义）
         
         额外要求：
-        - 不要使用 Markdown 格式（不要用 **加粗**、# 标题 等标记语法）
-        - 可以使用序号（1、2、3）、分号、破折号、括号等纯文本符号来组织内容，增强可读性
+        - 使用 Markdown 格式来增强可读性：
+          - 用 **加粗** 标记关键概念、重要术语和核心结论
+          - 用有序列表（1. 2. 3.）或无序列表（- ）来组织多个要点
+          - 不要使用 # 标题标记（标题由 UI 渲染）
+          - 不要使用代码块（```）
         - 不要使用营销语气，不要夸张
         - 数字结果尽量保留原文量级或指标名
         - 术语要选择论文中最核心、最重要的概念
@@ -203,10 +205,7 @@ class SummaryService {
             if let section = currentSection {
                 let value = currentContent.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
                 if !value.isEmpty {
-                    // Strip any residual Markdown bold markers
                     sections[section] = value
-                        .replacingOccurrences(of: "**", with: "")
-                        .replacingOccurrences(of: "__", with: "")
                 }
             }
         }

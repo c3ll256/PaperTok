@@ -1,30 +1,36 @@
 import Foundation
 import SwiftData
 
-struct RankedPaper {
-    let paper: Paper
+private struct RankedPaperEntry {
+    let arxivId: String
     let score: Double
 }
 
-class RankingEngine {
-    private let modelContext: ModelContext
+@ModelActor
+actor RankingEngine {
     
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
-    }
-    
-    func rankPapers(_ papers: [Paper]) async throws -> [Paper] {
-        var rankedPapers: [RankedPaper] = []
+    /// Accepts arxivId strings, fetches papers from own context, ranks them,
+    /// and returns arxivIds in ranked order.
+    func rankPapers(_ arxivIds: [String]) async throws -> [String] {
+        var entries: [RankedPaperEntry] = []
         
-        for paper in papers {
+        for arxivId in arxivIds {
+            // Fetch the paper from this actor's own ModelContext
+            let descriptor = FetchDescriptor<Paper>(
+                predicate: #Predicate { $0.arxivId == arxivId }
+            )
+            guard let paper = try modelContext.fetch(descriptor).first else {
+                continue
+            }
+            
             let score = try await calculateScore(for: paper)
-            rankedPapers.append(RankedPaper(paper: paper, score: score))
+            entries.append(RankedPaperEntry(arxivId: arxivId, score: score))
         }
         
         // Sort by score descending
-        rankedPapers.sort { $0.score > $1.score }
+        entries.sort { $0.score > $1.score }
         
-        return rankedPapers.map { $0.paper }
+        return entries.map { $0.arxivId }
     }
     
     private func calculateScore(for paper: Paper) async throws -> Double {

@@ -3,8 +3,9 @@ import SwiftData
 
 struct PaperCardView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var modelContext
     let paper: Paper
-    let modelContext: ModelContext
+    let modelContainer: ModelContainer
     
     @State private var summary: PaperSummary?
     @State private var terms: [TermGlossaryItem] = []
@@ -13,6 +14,7 @@ struct PaperCardView: View {
     @State private var showFullAbstract = false
     @State private var startTime = Date()
     @State private var isFavorited = false
+    @State private var safariURL: URL?
     
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
     
@@ -110,21 +112,6 @@ struct PaperCardView: View {
                 }
                 .padding(24)
                 
-                Divider()
-                    .padding(.horizontal, 24)
-                
-                // Original abstract
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("原始摘要")
-                        .font(AppTheme.Typography.headline)
-                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                    
-                    Text(paper.abstractText)
-                        .font(AppTheme.Typography.body)
-                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                }
-                .padding(24)
-                
                 // Bottom actions + next article hint
                 PaperBottomActionsView(
                     paper: paper,
@@ -161,6 +148,10 @@ struct PaperCardView: View {
         .onDisappear {
             recordDwellTime()
         }
+        .sheet(item: $safariURL) { url in
+            SafariView(url: url)
+                .ignoresSafeArea()
+        }
     }
     
     private func loadSummary() {
@@ -191,11 +182,11 @@ struct PaperCardView: View {
         
         Task {
             do {
-                let summaryService = SummaryService(modelContext: modelContext)
-                let partialSummary = try await summaryService.translateTitle(for: paper)
+                let summaryService = SummaryService(modelContainer: modelContainer)
+                try await summaryService.translateTitle(for: paper)
                 
                 await MainActor.run {
-                    summary = partialSummary
+                    loadSummary()
                     isTranslatingTitle = false
                 }
             } catch {
@@ -212,11 +203,11 @@ struct PaperCardView: View {
         
         Task {
             do {
-                let summaryService = SummaryService(modelContext: modelContext)
-                let generatedSummary = try await summaryService.generateSummary(for: paper)
+                let summaryService = SummaryService(modelContainer: modelContainer)
+                try await summaryService.generateSummary(for: paper)
                 
                 await MainActor.run {
-                    summary = generatedSummary
+                    loadSummary()
                     loadTerms()
                     isGeneratingSummary = false
                 }
@@ -236,11 +227,11 @@ struct PaperCardView: View {
         
         Task {
             do {
-                let summaryService = SummaryService(modelContext: modelContext)
-                let generatedSummary = try await summaryService.regenerateSummary(for: paper)
+                let summaryService = SummaryService(modelContainer: modelContainer)
+                try await summaryService.regenerateSummary(for: paper)
                 
                 await MainActor.run {
-                    summary = generatedSummary
+                    loadSummary()
                     loadTerms()
                     isGeneratingSummary = false
                 }
@@ -307,7 +298,7 @@ struct PaperCardView: View {
     
     private func openOriginalPaper() {
         if let url = URL(string: paper.pdfURL) {
-            UIApplication.shared.open(url)
+            safariURL = url
         }
     }
     
@@ -350,10 +341,12 @@ struct SummaryContentView: View {
                             .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                     }
                     
-                    Text(oneLiner)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                        .italic()
+                    MarkdownTextView(
+                        content: oneLiner,
+                        font: .system(size: 17, weight: .medium),
+                        foregroundColor: AppTheme.Colors.textPrimary(for: colorScheme)
+                    )
+                    .italic()
                 }
                 .padding(16)
                 .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
@@ -414,11 +407,47 @@ struct SectionView: View {
                     .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
             }
             
-            Text(content)
-                .font(AppTheme.Typography.body)
-                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                .lineSpacing(4)
+            MarkdownTextView(content: content)
         }
+    }
+}
+
+/// Renders Markdown content as styled `Text` using `AttributedString`.
+/// Supports **bold**, *italic*, and list markers while applying the app's
+/// color scheme and typography consistently.
+struct MarkdownTextView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let content: String
+    var font: Font = AppTheme.Typography.body
+    var foregroundColor: Color?
+    
+    var body: some View {
+        Text(styledMarkdown)
+            .font(font)
+            .foregroundStyle(foregroundColor ?? AppTheme.Colors.textSecondary(for: colorScheme))
+            .lineSpacing(4)
+    }
+    
+    private var styledMarkdown: AttributedString {
+        // Try parsing as Markdown; fall back to plain text on failure
+        guard var attributed = try? AttributedString(markdown: content, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) else {
+            return AttributedString(content)
+        }
+        
+        // Walk through runs and apply theme-consistent styling
+        for run in attributed.runs {
+            let range = run.range
+            
+            // Preserve inline bold/italic traits from Markdown parsing
+            // but ensure colors stay within the theme
+            if let inlinePresentationIntent = run.inlinePresentationIntent {
+                if inlinePresentationIntent.contains(.stronglyEmphasized) {
+                    attributed[range].foregroundColor = UIColor(AppTheme.Colors.textPrimary(for: colorScheme))
+                }
+            }
+        }
+        
+        return attributed
     }
 }
 
