@@ -106,8 +106,11 @@ struct PaperCardView: View {
                 PaperBottomActionsView(
                     paper: paper,
                     isFavorited: $isFavorited,
+                    hasSummary: summary != nil,
+                    isRegenerating: isGeneratingSummary,
                     onToggleFavorite: toggleFavorite,
-                    onOpenOriginal: openOriginalPaper
+                    onOpenOriginal: openOriginalPaper,
+                    onRegenerate: regenerateSummary
                 )
                 .padding(.bottom, 80) // Extra padding for bottom bar
             }
@@ -169,6 +172,30 @@ struct PaperCardView: View {
                 }
             } catch {
                 print("Error generating summary: \(error)")
+                await MainActor.run {
+                    isGeneratingSummary = false
+                }
+            }
+        }
+    }
+    
+    private func regenerateSummary() {
+        isGeneratingSummary = true
+        summary = nil
+        terms = []
+        
+        Task {
+            do {
+                let summaryService = SummaryService(modelContext: modelContext)
+                let generatedSummary = try await summaryService.regenerateSummary(for: paper)
+                
+                await MainActor.run {
+                    summary = generatedSummary
+                    loadTerms()
+                    isGeneratingSummary = false
+                }
+            } catch {
+                print("Error regenerating summary: \(error)")
                 await MainActor.run {
                     isGeneratingSummary = false
                 }
@@ -337,30 +364,37 @@ struct TermCardView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(term.termChinese)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                
-                Text(term.termEnglish)
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
-            }
+            // 第一行：术语原文（英文）
+            Text(term.termEnglish)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
             
+            // 第二行：翻译（中文）
+            Text(term.termChinese)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // 解释
             Text(term.explanation)
                 .font(.system(size: 14))
                 .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
             
+            // 本文中的含义
             if !term.contextMeaning.isEmpty {
                 Text("本文中：\(term.contextMeaning)")
                     .font(AppTheme.Typography.caption)
                     .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                     .italic()
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(12)
+        .padding(16)
+        .frame(maxWidth: .infinity)
         .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
-        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.tag))
+        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
     }
 }
 
@@ -368,8 +402,11 @@ struct PaperBottomActionsView: View {
     @Environment(\.colorScheme) private var colorScheme
     let paper: Paper
     @Binding var isFavorited: Bool
+    let hasSummary: Bool
+    let isRegenerating: Bool
     let onToggleFavorite: () -> Void
     let onOpenOriginal: () -> Void
+    let onRegenerate: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -396,6 +433,26 @@ struct PaperBottomActionsView: View {
                             .glassEffect(.regular.interactive(), in: .capsule)
                         }
                         .buttonStyle(.plain)
+                        
+                        // 重新分析按钮
+                        if hasSummary {
+                            Button(action: onRegenerate) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.trianglehead.2.clockwise")
+                                        .font(.system(size: 16))
+                                    Text("重新分析")
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .contentShape(.capsule)
+                                .glassEffect(.regular.interactive(), in: .capsule)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isRegenerating)
+                            .opacity(isRegenerating ? 0.5 : 1)
+                        }
                         
                         // 查看原文按钮
                         Button(action: onOpenOriginal) {
@@ -436,6 +493,27 @@ struct PaperBottomActionsView: View {
                         .clipShape(.capsule)
                     }
                     .buttonStyle(.plain)
+                    
+                    // 重新分析按钮
+                    if hasSummary {
+                        Button(action: onRegenerate) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.trianglehead.2.clockwise")
+                                    .font(.system(size: 16))
+                                Text("重新分析")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .contentShape(.capsule)
+                            .background(.ultraThinMaterial)
+                            .clipShape(.capsule)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isRegenerating)
+                        .opacity(isRegenerating ? 0.5 : 1)
+                    }
                     
                     // 查看原文按钮
                     Button(action: onOpenOriginal) {

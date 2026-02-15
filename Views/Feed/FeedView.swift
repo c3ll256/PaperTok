@@ -40,31 +40,23 @@ struct FeedView: View {
                     )
                 }
                 
-                // 顶部和底部渐变模糊
-                if !rankedPapers.isEmpty && !isLoading {
-                    GeometryReader { geo in
-                        VStack {
-                            // 顶部渐变模糊
-                            VariableBlurView(maxBlurRadius: 16, direction: .blurredTopClearBottom)
-                                .frame(height: geo.safeAreaInsets.top + 100)
-                            
-                            Spacer()
-                            
-                            // 底部渐变模糊
-                            VariableBlurView(maxBlurRadius: 16, direction: .blurredBottomClearTop)
-                                .frame(height: geo.safeAreaInsets.bottom + 100)
-                        }
-                    }
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
-                }
-                
                 // 统一的底部工具栏
                 if !rankedPapers.isEmpty && !isLoading {
                     VStack {
                         Spacer()
                         bottomToolbar
                     }
+                }
+            }
+            // 顶部渐变模糊
+            .overlay(alignment: .top) {
+                if !rankedPapers.isEmpty && !isLoading {
+                    GeometryReader { geom in
+                        VariableBlurView(maxBlurRadius: 10)
+                            .frame(height: geom.safeAreaInsets.top)
+                            .ignoresSafeArea()
+                    }
+                    .allowsHitTesting(false)
                 }
             }
             .navigationBarHidden(true)
@@ -194,7 +186,6 @@ struct FeedView: View {
             }
         }
         .frame(height: 48)
-        .padding(.bottom, 12)
     }
     
     // MARK: - Actions

@@ -8,6 +8,32 @@ class SummaryService {
         self.modelContext = modelContext
     }
     
+    func regenerateSummary(for paper: Paper) async throws -> PaperSummary {
+        // Delete existing summary
+        let arxivId = paper.arxivId
+        let summaryDescriptor = FetchDescriptor<PaperSummary>(
+            predicate: #Predicate { $0.arxivId == arxivId }
+        )
+        if let existingSummary = try? modelContext.fetch(summaryDescriptor).first {
+            modelContext.delete(existingSummary)
+        }
+        
+        // Delete existing terms
+        let termsDescriptor = FetchDescriptor<TermGlossaryItem>(
+            predicate: #Predicate { $0.arxivId == arxivId }
+        )
+        if let existingTerms = try? modelContext.fetch(termsDescriptor) {
+            for term in existingTerms {
+                modelContext.delete(term)
+            }
+        }
+        
+        try modelContext.save()
+        
+        // Generate fresh summary
+        return try await generateSummary(for: paper)
+    }
+    
     func generateSummary(for paper: Paper) async throws -> PaperSummary {
         // Check if summary already exists
         let arxivId = paper.arxivId
@@ -28,7 +54,7 @@ class SummaryService {
         
         let systemPrompt = """
         我是一名拥有初中生智力的博士生，请你用中文输出，尽量通俗易懂、短句表达。
-        专业名词请在中文后面加括号英文（例如：注意力机制 Attention Mechanism）。
+        专业名词请在中文后面加括号英文（例如：注意力机制（Attention Mechanism））。
         请严格按照以下结构输出，并控制总长度在 220~320 字：
         
         1) 这篇论文在解决什么问题（Problem）
@@ -36,15 +62,18 @@ class SummaryService {
         3) 最关键的实验结果和结论是什么（Result & Conclusion）
         4) 这篇论文为什么值得关注（Why it matters）
         5) 一句话总结（One-liner）
-        6) Terms to Know（3-6 个术语）：
-           - 术语中文名（English）
-           - 一句话解释（不超过 30 字）
-           - 在本文里的具体含义（不超过 40 字）
+        6) Terms to Know（3-6 个核心术语）：
+           每个术语按以下格式输出：
+           - English Term Name（英文术语原文）
+           - 中文翻译
+           - 一句话解释（不超过 30 字，说明这个术语的通用含义）
+           - 在本文里的具体含义（不超过 40 字，说明在这篇论文中的特定用法或意义）
         
         额外要求：
         - 不要使用营销语气，不要夸张
         - 不确定的信息要明确说"论文未明确说明"
         - 数字结果尽量保留原文量级或指标名
+        - 术语要选择论文中最核心、最重要的概念
         """
         
         let userPrompt = """
@@ -153,20 +182,45 @@ class SummaryService {
         }
         
         let lines = termsSection.components(separatedBy: .newlines)
-        var currentTerm: String?
+        var currentEnglish: String?
+        var currentChinese: String?
         var currentExplanation: String?
         var currentContext: String?
+        var lineIndex = 0
         
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             
-            if trimmed.contains("（") && trimmed.contains("）") {
-                // Save previous term if exists
-                if let term = currentTerm, let explanation = currentExplanation, let context = currentContext {
-                    let parts = term.components(separatedBy: "（")
-                    let chinese = parts[0].trimmingCharacters(in: .whitespaces)
-                    let english = parts.last?.replacingOccurrences(of: "）", with: "").trimmingCharacters(in: .whitespaces) ?? ""
-                    
+            // Skip empty lines
+            if trimmed.isEmpty {
+                continue
+            }
+            
+            // Remove leading "- " if present
+            let content = trimmed.replacingOccurrences(of: "^- ", with: "", options: .regularExpression)
+            
+            // Detect if this is a new term (contains English characters and possibly parentheses)
+            let hasEnglishLetters = content.rangeOfCharacter(from: CharacterSet.letters) != nil
+            let startsWithCapital = content.first?.isUppercase ?? false
+            
+            if startsWithCapital && hasEnglishLetters && currentEnglish == nil {
+                // This is the English term (first line of a new term)
+                currentEnglish = content.replacingOccurrences(of: "（", with: "").replacingOccurrences(of: "）", with: "")
+                lineIndex = 0
+            } else if currentEnglish != nil && lineIndex == 0 {
+                // This is the Chinese translation (second line)
+                currentChinese = content
+                lineIndex = 1
+            } else if currentChinese != nil && lineIndex == 1 {
+                // This is the explanation (third line)
+                currentExplanation = content
+                lineIndex = 2
+            } else if currentExplanation != nil && lineIndex == 2 {
+                // This is the context meaning (fourth line)
+                currentContext = content
+                
+                // Save the complete term
+                if let english = currentEnglish, let chinese = currentChinese, let explanation = currentExplanation, let context = currentContext {
                     let glossaryItem = TermGlossaryItem(
                         arxivId: arxivId,
                         termChinese: chinese,
@@ -177,28 +231,23 @@ class SummaryService {
                     modelContext.insert(glossaryItem)
                 }
                 
-                currentTerm = trimmed.replacingOccurrences(of: "- ", with: "")
+                // Reset for next term
+                currentEnglish = nil
+                currentChinese = nil
                 currentExplanation = nil
                 currentContext = nil
-            } else if trimmed.starts(with: "- ") && currentTerm != nil && currentExplanation == nil {
-                currentExplanation = trimmed.replacingOccurrences(of: "- ", with: "")
-            } else if trimmed.starts(with: "- ") && currentExplanation != nil && currentContext == nil {
-                currentContext = trimmed.replacingOccurrences(of: "- ", with: "")
+                lineIndex = 0
             }
         }
         
-        // Save last term
-        if let term = currentTerm, let explanation = currentExplanation, let context = currentContext {
-            let parts = term.components(separatedBy: "（")
-            let chinese = parts[0].trimmingCharacters(in: .whitespaces)
-            let english = parts.last?.replacingOccurrences(of: "）", with: "").trimmingCharacters(in: .whitespaces) ?? ""
-            
+        // Save last term if incomplete but has minimum data
+        if let english = currentEnglish, let chinese = currentChinese, let explanation = currentExplanation {
             let glossaryItem = TermGlossaryItem(
                 arxivId: arxivId,
                 termChinese: chinese,
                 termEnglish: english,
                 explanation: explanation,
-                contextMeaning: context
+                contextMeaning: currentContext ?? ""
             )
             modelContext.insert(glossaryItem)
         }
