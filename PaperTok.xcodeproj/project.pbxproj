@@ -21,13 +21,13 @@
 		802EDD5B3BDF432B4DE17554 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12575A1A9044DC011FAE75F2 /* ErrorView.swift */; };
 		86A2F1268B518BFA80ADB601 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0194168F0E0E6A009303B0B6 /* SettingsView.swift */; };
 		9DA95C33A1CD7CF7C2D0CD62 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3420D2D37082FAF093988869 /* FeedView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E7F8091A2B3C4D5E6F7081 /* SafariView.swift */; };
 		B3D1D0B8B36F05A404582370 /* PaperCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B870718F7A8DB4904A8BC730 /* PaperCardView.swift */; };
 		B88CEA055E3FED3ED44F5E3F /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC9258A3086E45F666E9ECB /* KeychainStore.swift */; };
 		C24F029ED76A7774DBB03E6E /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6200E89506BD64F2625E2EA1 /* LoadingView.swift */; };
 		D58CDE5C3CBF9DDF2352BB01 /* RankingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2A76614022181619D414A5 /* RankingEngine.swift */; };
 		DA5A11827D2B4D58222FAFFF /* Paper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F5B28E4FA8E1D469FBC90F /* Paper.swift */; };
 		EF5C118762AEE0D5FADA4059 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BC9FCEE774D843451DD123A /* ContentView.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E7F8091A2B3C4D5E6F7081 /* SafariView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,11 +48,11 @@
 		B74E9EFFE09330A0653A6D74 /* PaperTokApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperTokApp.swift; sourceTree = "<group>"; };
 		B870718F7A8DB4904A8BC730 /* PaperCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperCardView.swift; sourceTree = "<group>"; };
 		D48E7498C6BF038A5460F901 /* PaperTok.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PaperTok.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6E7F8091A2B3C4D5E6F7081 /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		D72C5A54E0FF63EA30998538 /* BookmarksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarksView.swift; sourceTree = "<group>"; };
 		EFB72C65D32D2855BC62120C /* LLMProviderAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProviderAdapter.swift; sourceTree = "<group>"; };
 		EFC9258A3086E45F666E9ECB /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		F4F5B28E4FA8E1D469FBC90F /* Paper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paper.swift; sourceTree = "<group>"; };
-		D6E7F8091A2B3C4D5E6F7081 /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -335,6 +335,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 44522M79VS;
 				ENABLE_PREVIEWS = YES;
@@ -343,6 +344,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.papertok.app;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -355,6 +357,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 44522M79VS;
 				ENABLE_PREVIEWS = YES;
@@ -363,6 +366,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.papertok.app;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
