@@ -1,8 +1,8 @@
 {
   "fill" : {
     "linear-gradient" : [
-      "extended-gray:1.00000,1.00000",
-      "gray:0.75000,1.00000"
+      "gray:0.25000,1.00000",
+      "gray:0.00000,1.00000"
     ],
     "orientation" : {
       "start" : {
@@ -19,9 +19,9 @@
     {
       "layers" : [
         {
-          "glass" : false,
-          "image-name" : "Untitled (2).png",
-          "name" : "Untitled (2)"
+          "glass" : true,
+          "image-name" : "AppIcon.png",
+          "name" : "AppIcon"
         }
       ],
       "shadow" : {
