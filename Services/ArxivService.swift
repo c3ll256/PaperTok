@@ -11,8 +11,8 @@ struct ArxivQuery {
 class ArxivService {
     private let baseURL = "https://export.arxiv.org/api/query"
     private let modelContext: ModelContext
-    private let maxRetries = 3
-    private let baseDelay: UInt64 = 3_000_000_000 // 3 seconds in nanoseconds
+    private let maxRetries = 5
+    private let baseDelay: UInt64 = 10_000_000_000 // 10 seconds (ArXiv recommends ≥10s between requests)
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -25,22 +25,31 @@ class ArxivService {
             throw ArxivError.invalidQuery
         }
         
-        // Try with retries for rate limiting
+        // Try with retries for rate limiting and transient network errors
+        var lastError: Error = ArxivError.networkError
         for attempt in 0..<maxRetries {
             do {
                 return try await fetchPapersInternal(query: query, attempt: attempt)
             } catch ArxivError.rateLimited {
+                lastError = ArxivError.rateLimited
                 if attempt < maxRetries - 1 {
-                    let delay = baseDelay * UInt64(pow(2.0, Double(attempt)))
-                    print("⏳ Rate limited. Waiting \(delay / 1_000_000_000) seconds before retry \(attempt + 1)/\(maxRetries)...")
+                    let delay = baseDelay * UInt64(pow(1.5, Double(attempt))) // 10s, 15s, 22s, 34s
+                    let delaySec = delay / 1_000_000_000
+                    print("⏳ Rate limited. Waiting \(delaySec) seconds before retry \(attempt + 1)/\(maxRetries)...")
                     try await Task.sleep(nanoseconds: delay)
-                } else {
-                    throw ArxivError.rateLimited
+                }
+            } catch let urlError as URLError where urlError.code == .timedOut || urlError.code == .networkConnectionLost {
+                lastError = urlError
+                if attempt < maxRetries - 1 {
+                    let delay = baseDelay * UInt64(pow(1.5, Double(attempt)))
+                    let delaySec = delay / 1_000_000_000
+                    print("⏳ Network timeout. Waiting \(delaySec) seconds before retry \(attempt + 1)/\(maxRetries)...")
+                    try await Task.sleep(nanoseconds: delay)
                 }
             }
         }
         
-        throw ArxivError.networkError
+        throw lastError
     }
     
     private func fetchPapersInternal(query: ArxivQuery, attempt: Int) async throws -> [Paper] {
@@ -66,7 +75,7 @@ class ArxivService {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("PaperTok/1.0", forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 30
+        request.timeoutInterval = 60
         
         let (data, response) = try await URLSession.shared.data(for: request)
         

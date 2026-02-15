@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var testResultMessage = ""
     @State private var isTestingConnection = false
     @State private var showCategorySelection = false
+    @AppStorage("preloadCount") private var preloadCount = 3
     
     let onDismiss: (() -> Void)?
     
@@ -64,6 +65,50 @@ struct SettingsView: View {
                         .buttonStyle(PlainButtonStyle())
                         .padding(.horizontal, 24)
                     }
+                    
+                    Divider()
+                        .padding(.horizontal, 24)
+                    
+                    // Preload setting
+                    HStack {
+                        Text("预加载篇数")
+                            .font(AppTheme.Typography.headline)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                        
+                        Spacer()
+                        
+                        HStack(spacing: 16) {
+                            Button {
+                                if preloadCount > 0 { preloadCount -= 1 }
+                            } label: {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(preloadCount > 0 ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
+                                    .frame(width: 28, height: 28)
+                                    .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+                                    .clipShape(Circle())
+                            }
+                            .disabled(preloadCount <= 0)
+                            
+                            Text("\(preloadCount)")
+                                .font(.system(size: 17, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                                .frame(minWidth: 24)
+                            
+                            Button {
+                                if preloadCount < 10 { preloadCount += 1 }
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(preloadCount < 10 ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
+                                    .frame(width: 28, height: 28)
+                                    .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+                                    .clipShape(Circle())
+                            }
+                            .disabled(preloadCount >= 10)
+                        }
+                    }
+                    .padding(.horizontal, 24)
                     
                     Divider()
                         .padding(.horizontal, 24)

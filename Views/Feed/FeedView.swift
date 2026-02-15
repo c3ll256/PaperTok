@@ -8,6 +8,7 @@ struct FeedView: View {
     @Query private var preferences: [UserPreference]
     
     @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
+    @AppStorage("preloadCount") private var preloadCount = 3
     @State private var currentIndex = 0
     @State private var rankedPapers: [Paper] = []
     @State private var isLoading = false
@@ -36,16 +37,15 @@ struct FeedView: View {
                     VerticalPagingView(
                         papers: rankedPapers,
                         currentIndex: $currentIndex,
-                        modelContext: modelContext
+                        modelContext: modelContext,
+                        preloadCount: preloadCount
                     )
                 }
                 
-                // 统一的底部工具栏
-                if !rankedPapers.isEmpty && !isLoading {
-                    VStack {
-                        Spacer()
-                        bottomToolbar
-                    }
+                // 统一的底部工具栏 — 始终显示，确保用户随时可以进入设置
+                VStack {
+                    Spacer()
+                    bottomToolbar
                 }
             }
             // 顶部渐变模糊
@@ -298,8 +298,10 @@ struct VerticalPagingView: View {
     let papers: [Paper]
     @Binding var currentIndex: Int
     let modelContext: ModelContext
+    let preloadCount: Int
     
     @State private var scrollPosition: Int?
+    @State private var preloadedIndices: Set<Int> = []
     
     var body: some View {
         GeometryReader { geometry in
@@ -321,12 +323,39 @@ struct VerticalPagingView: View {
             .onChange(of: scrollPosition) { oldValue, newValue in
                 if let newValue = newValue {
                     currentIndex = newValue
+                    preloadUpcoming(from: newValue)
                 }
             }
             .onAppear {
                 scrollPosition = currentIndex
+                preloadUpcoming(from: currentIndex)
             }
         }
         .ignoresSafeArea()
+    }
+    
+    /// Preload title translations and summaries for the next N papers
+    private func preloadUpcoming(from index: Int) {
+        guard preloadCount > 0 else { return }
+        
+        let start = index + 1
+        let end = min(index + preloadCount, papers.count - 1)
+        guard start <= end else { return }
+        
+        for i in start...end {
+            guard !preloadedIndices.contains(i) else { continue }
+            preloadedIndices.insert(i)
+            
+            let paper = papers[i]
+            Task {
+                let summaryService = SummaryService(modelContext: modelContext)
+                
+                // 1. Fast title translation
+                _ = try? await summaryService.translateTitle(for: paper)
+                
+                // 2. Full summary
+                _ = try? await summaryService.generateSummary(for: paper)
+            }
+        }
     }
 }

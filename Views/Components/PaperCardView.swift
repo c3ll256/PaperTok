@@ -323,6 +323,7 @@ struct SummaryContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     let summary: PaperSummary
     let terms: [TermGlossaryItem]
+    @State private var isTermsExpanded = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -361,17 +362,34 @@ struct SummaryContentView: View {
             
             if !terms.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "book")
-                            .font(.system(size: 16))
-                            .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
-                        Text("核心术语")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            isTermsExpanded.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "book")
+                                .font(.system(size: 16))
+                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                            Text("核心术语")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                                .rotationEffect(.degrees(isTermsExpanded ? 90 : 0))
+                        }
                     }
+                    .buttonStyle(.plain)
                     
-                    ForEach(terms.prefix(6), id: \.id) { term in
-                        TermCardView(term: term)
+                    if isTermsExpanded {
+                        ForEach(terms.prefix(6), id: \.id) { term in
+                            TermCardView(term: term)
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
             }
@@ -407,37 +425,59 @@ struct SectionView: View {
 struct TermCardView: View {
     @Environment(\.colorScheme) private var colorScheme
     let term: TermGlossaryItem
+    @State private var isExpanded = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // 第一行：术语原文（英文）
-            Text(term.termEnglish)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 0) {
+            // Header row — always visible, tappable
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(term.termEnglish)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                        
+                        Text(term.termChinese)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(16)
             
-            // 第二行：翻译（中文）
-            Text(term.termChinese)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // 解释
-            Text(term.explanation)
-                .font(.system(size: 14))
-                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // 本文中的含义
-            if !term.contextMeaning.isEmpty {
-                Text("本文中：\(term.contextMeaning)")
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
-                    .italic()
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            // Detail — collapsed by default
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(term.explanation)
+                        .font(.system(size: 14))
+                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    if !term.contextMeaning.isEmpty {
+                        Text("本文中：\(term.contextMeaning)")
+                            .font(AppTheme.Typography.caption)
+                            .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                            .italic()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(16)
         .frame(maxWidth: .infinity)
         .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
         .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
