@@ -3,13 +3,22 @@ import SwiftData
 
 struct ArxivQuery {
     let categories: [String]
+    let keyword: String?
     let maxResults: Int
     let start: Int // pagination offset
     let sortBy: String // "submittedDate", "lastUpdatedDate", "relevance"
     let sortOrder: String // "descending", "ascending"
     
-    init(categories: [String], maxResults: Int = 10, start: Int = 0, sortBy: String = "submittedDate", sortOrder: String = "descending") {
+    init(
+        categories: [String],
+        keyword: String? = nil,
+        maxResults: Int = 10,
+        start: Int = 0,
+        sortBy: String = "submittedDate",
+        sortOrder: String = "descending"
+    ) {
         self.categories = categories
+        self.keyword = keyword
         self.maxResults = maxResults
         self.start = start
         self.sortBy = sortBy
@@ -72,10 +81,17 @@ actor ArxivService {
     private func fetchPapersInternal(query: ArxivQuery, attempt: Int) async throws -> [String] {
         // Build search query
         let categoryQuery = query.categories.map { "cat:\($0)" }.joined(separator: " OR ")
+        let trimmedKeyword = query.keyword?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let searchQuery: String
+        if trimmedKeyword.isEmpty {
+            searchQuery = "(\(categoryQuery))"
+        } else {
+            searchQuery = "(\(categoryQuery)) AND all:\"\(trimmedKeyword)\""
+        }
         
         var components = URLComponents(string: baseURL)!
         components.queryItems = [
-            URLQueryItem(name: "search_query", value: categoryQuery),
+            URLQueryItem(name: "search_query", value: searchQuery),
             URLQueryItem(name: "start", value: "\(query.start)"),
             URLQueryItem(name: "max_results", value: "\(query.maxResults)"),
             URLQueryItem(name: "sortBy", value: query.sortBy),

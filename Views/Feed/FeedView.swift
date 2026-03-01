@@ -14,7 +14,7 @@ struct FeedView: View {
     @AppStorage("hasSeenSwipeGuide") private var hasSeenSwipeGuide = false
     @AppStorage("feedSource") private var feedSource = FeedSource.arxiv.rawValue
     @AppStorage("hfTimePeriod") private var hfTimePeriod = HFTimePeriod.daily.rawValue
-    @AppStorage("arxivActiveCategory") private var arxivActiveCategory = "all"
+    @AppStorage("arxivSearchKeyword") private var arxivSearchKeyword = ""
     @State private var currentIndex = 0
     @State private var rankedPapers: [Paper] = []
     @State private var isLoading = false
@@ -25,6 +25,7 @@ struct FeedView: View {
     @State private var showBookmarks = false
     @State private var showSwipeGuide = false
     @State private var showMenu = false
+    @State private var showArxivSearchSheet = false
     @State private var currentOffset = 0
     private let pageSize = 10
     
@@ -74,9 +75,20 @@ struct FeedView: View {
                         FloatingMenuView(
                             isExpanded: $showMenu,
                             isLoading: isLoading,
+                            feedSource: $feedSource,
+                            selectedArxivCategories: selectedArxivCategories(),
+                            arxivSearchKeyword: arxivSearchKeyword,
                             onSettings: { showSettings = true },
                             onBookmarks: { showBookmarks = true },
-                            onRefresh: { loadPapers() }
+                            onRefreshLatest: { loadPapers() },
+                            onToggleArxivCategory: { code in
+                                toggleArxivCategory(code)
+                                rankedPapers = []
+                                loadPapers()
+                            },
+                            onTapArxivSearch: {
+                                showArxivSearchSheet = true
+                            }
                         )
                         Spacer()
                     }
@@ -112,7 +124,15 @@ struct FeedView: View {
             .sheet(isPresented: $showBookmarks) {
                 BookmarksView()
             }
+            .sheet(isPresented: $showArxivSearchSheet) {
+                ArxivSearchSheet(initialKeyword: arxivSearchKeyword) { keyword in
+                    arxivSearchKeyword = keyword
+                    rankedPapers = []
+                    loadPapers()
+                }
+            }
             .task {
+                ensureUserPreferenceExists()
                 if hasConfiguredAPI && rankedPapers.isEmpty {
                     loadPapers()
                 }
@@ -124,11 +144,6 @@ struct FeedView: View {
             }
             .onChange(of: hfTimePeriod) { _, _ in
                 guard feedSource == FeedSource.huggingFace.rawValue, hasConfiguredAPI else { return }
-                rankedPapers = []
-                loadPapers()
-            }
-            .onChange(of: arxivActiveCategory) { _, _ in
-                guard feedSource == FeedSource.arxiv.rawValue, hasConfiguredAPI else { return }
                 rankedPapers = []
                 loadPapers()
             }
@@ -153,27 +168,18 @@ struct FeedView: View {
                     let hfService = HuggingFaceService(modelContainer: modelContainer)
                     fetchedIds = try await hfService.fetchPapers(period: period)
                 } else {
-                    // arXiv: fetch by category, then re-rank with RankingEngine
-                    guard let preference = preferences.first else {
-                        await MainActor.run { isLoading = false }
-                        return
-                    }
-                    let allSelected = preference.selectedCategories
-                    // Use active category filter; fall back to all if filter is stale
-                    let queryCategories = (arxivActiveCategory != "all" && allSelected.contains(arxivActiveCategory))
-                        ? [arxivActiveCategory]
-                        : allSelected
+                    // arXiv: fetch latest papers with optional keyword filter
+                    let queryCategories = selectedArxivCategories()
                     let arxivService = ArxivService(modelContainer: modelContainer)
                     let query = ArxivQuery(
                         categories: queryCategories,
+                        keyword: arxivSearchKeyword,
                         maxResults: pageSize,
                         start: 0,
                         sortBy: "submittedDate",
                         sortOrder: "descending"
                     )
-                    let rawIds = try await arxivService.fetchPapers(query: query)
-                    let rankingEngine = RankingEngine(modelContainer: modelContainer)
-                    fetchedIds = try await rankingEngine.rankPapers(rawIds)
+                    fetchedIds = try await arxivService.fetchPapers(query: query)
                 }
 
                 await MainActor.run {
@@ -216,20 +222,11 @@ struct FeedView: View {
         
         Task {
             do {
-                guard let preference = preferences.first else {
-                    await MainActor.run {
-                        isLoadingMore = false
-                    }
-                    return
-                }
-                
-                let allSelected = preference.selectedCategories
-                let queryCategories = (arxivActiveCategory != "all" && allSelected.contains(arxivActiveCategory))
-                    ? [arxivActiveCategory]
-                    : allSelected
+                let queryCategories = selectedArxivCategories()
                 let arxivService = ArxivService(modelContainer: modelContainer)
                 let query = ArxivQuery(
                     categories: queryCategories,
+                    keyword: arxivSearchKeyword,
                     maxResults: pageSize,
                     start: currentOffset,
                     sortBy: "submittedDate",
@@ -245,12 +242,9 @@ struct FeedView: View {
                     return
                 }
                 
-                let rankingEngine = RankingEngine(modelContainer: modelContainer)
-                let rankedArxivIds = try await rankingEngine.rankPapers(fetchedArxivIds)
-                
                 await MainActor.run {
                     let existingIds = Set(rankedPapers.map(\.arxivId))
-                    let newPapers: [Paper] = rankedArxivIds.compactMap { arxivId in
+                    let newPapers: [Paper] = fetchedArxivIds.compactMap { arxivId in
                         guard !existingIds.contains(arxivId) else { return nil }
                         let descriptor = FetchDescriptor<Paper>(
                             predicate: #Predicate { $0.arxivId == arxivId }
@@ -269,6 +263,47 @@ struct FeedView: View {
             }
         }
     }
+
+    private func selectedArxivCategories() -> [String] {
+        let selected = preferences.first?.selectedCategories ?? []
+        if !selected.isEmpty {
+            return selected
+        }
+        return CategorySelectionView.allCategories.map(\.code)
+    }
+
+    private func ensureUserPreferenceExists() {
+        guard preferences.isEmpty else { return }
+        let defaultCategories = CategorySelectionView.allCategories.map(\.code)
+        let preference = UserPreference(selectedCategories: defaultCategories)
+        modelContext.insert(preference)
+        try? modelContext.save()
+    }
+
+    private func toggleArxivCategory(_ code: String) {
+        let descriptor = FetchDescriptor<UserPreference>()
+        let preference: UserPreference
+        if let existing = try? modelContext.fetch(descriptor).first {
+            preference = existing
+        } else {
+            let created = UserPreference(selectedCategories: CategorySelectionView.allCategories.map(\.code))
+            modelContext.insert(created)
+            preference = created
+        }
+
+        var set = Set(preference.selectedCategories)
+        if set.contains(code) {
+            // Keep at least one category selected.
+            if set.count > 1 {
+                set.remove(code)
+            }
+        } else {
+            set.insert(code)
+        }
+        preference.selectedCategories = Array(set).sorted()
+        preference.updatedAt = Date()
+        try? modelContext.save()
+    }
 }
 
 // MARK: - Floating Menu
@@ -277,14 +312,87 @@ struct FloatingMenuView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Binding var isExpanded: Bool
     let isLoading: Bool
+    @Binding var feedSource: String
+    let selectedArxivCategories: [String]
+    let arxivSearchKeyword: String
     let onSettings: () -> Void
     let onBookmarks: () -> Void
-    let onRefresh: () -> Void
+    let onRefreshLatest: () -> Void
+    let onToggleArxivCategory: (String) -> Void
+    let onTapArxivSearch: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Menu items — shown when expanded
             if isExpanded {
+                Menu {
+                    Button {
+                        feedSource = FeedSource.arxiv.rawValue
+                    } label: {
+                        HStack {
+                            Text("arXiv")
+                            if feedSource == FeedSource.arxiv.rawValue {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    Button {
+                        feedSource = FeedSource.huggingFace.rawValue
+                    } label: {
+                        HStack {
+                            Text("Hugging Face Papers")
+                            if feedSource == FeedSource.huggingFace.rawValue {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                } label: {
+                    FloatingMenuLabel(icon: "square.2.layers.3d", label: dataSourceLabel)
+                }
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
+                    removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)
+                ))
+
+                if feedSource == FeedSource.arxiv.rawValue {
+                    Menu {
+                        ForEach(CategorySelectionView.allCategories, id: \.code) { category in
+                            let isSelected = selectedArxivCategories.contains(category.code)
+                            Button {
+                                onToggleArxivCategory(category.code)
+                            } label: {
+                                Label(
+                                    "\(category.chinese) (\(category.code))",
+                                    systemImage: isSelected ? "checkmark.circle.fill" : "circle"
+                                )
+                            }
+                        }
+                    } label: {
+                        FloatingMenuLabel(
+                            icon: "line.3.horizontal.decrease.circle",
+                            label: "分类筛选（多选）"
+                        )
+                    }
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
+                        removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)
+                    ))
+
+                    FloatingMenuItem(
+                        icon: "magnifyingglass",
+                        label: arxivSearchKeyword.isEmpty ? "搜索论文" : "搜索：\(arxivSearchKeyword)"
+                    ) {
+                        withAnimation(.spring(duration: 0.35, bounce: 0.25)) {
+                            isExpanded = false
+                        }
+                        onTapArxivSearch()
+                    }
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
+                        removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)
+                    ))
+                }
+
                 FloatingMenuItem(
                     icon: "gearshape",
                     label: "设置"
@@ -315,13 +423,13 @@ struct FloatingMenuView: View {
                 
                 FloatingMenuItem(
                     icon: "arrow.2.circlepath.circle",
-                    label: "拉取论文",
+                    label: "拉取最新论文",
                     isDisabled: isLoading
                 ) {
                     withAnimation(.spring(duration: 0.35, bounce: 0.25)) {
                         isExpanded = false
                     }
-                    onRefresh()
+                    onRefreshLatest()
                 }
                 .transition(.asymmetric(
                     insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
@@ -341,6 +449,10 @@ struct FloatingMenuView: View {
         }
         .padding(.leading, 20)
         .padding(.bottom, 16)
+    }
+
+    private var dataSourceLabel: String {
+        feedSource == FeedSource.arxiv.rawValue ? "数据源：arXiv" : "数据源：Hugging Face"
     }
     
     @ViewBuilder
@@ -362,6 +474,26 @@ struct FloatingMenuView: View {
                 .background(.thickMaterial)
                 .clipShape(.circle)
         }
+    }
+}
+
+private struct FloatingMenuLabel: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let icon: String
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+            Text(label)
+                .font(.system(size: 15, weight: .medium))
+        }
+        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+        .padding(.horizontal, 16)
+        .frame(height: 44)
+        .background(.thickMaterial)
+        .clipShape(.capsule)
     }
 }
 
@@ -411,6 +543,68 @@ struct FloatingMenuItem: View {
     }
 }
 
+struct ArxivSearchSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var keyword: String
+    let onSearch: (String) -> Void
+
+    init(initialKeyword: String, onSearch: @escaping (String) -> Void) {
+        _keyword = State(initialValue: initialKeyword)
+        self.onSearch = onSearch
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                Text("输入关键词后，将在 arXiv 中拉取匹配的最新论文")
+                    .font(AppTheme.Typography.body)
+                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                TextField("例如：diffusion model", text: $keyword)
+                    .textFieldStyle(CustomTextFieldStyle())
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                Button {
+                    onSearch(keyword.trimmingCharacters(in: .whitespacesAndNewlines))
+                    dismiss()
+                } label: {
+                    Text("搜索")
+                        .font(AppTheme.Typography.headline)
+                        .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(AppTheme.Colors.textPrimary(for: colorScheme))
+                        .clipShape(.capsule)
+                }
+                .modifier(GlassEffectModifier())
+
+                Button("清空关键词并查看全部") {
+                    onSearch("")
+                    dismiss()
+                }
+                .font(AppTheme.Typography.body)
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+
+                Spacer()
+            }
+            .padding(24)
+            .background(AppTheme.Colors.background(for: colorScheme))
+            .navigationTitle("arXiv 搜索")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 struct SetupPromptView: View {
     @Environment(\.colorScheme) private var colorScheme
     let onSetup: () -> Void
@@ -447,12 +641,12 @@ struct EmptyStateView: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
             
-            Text("点击拉取按钮拉取最新论文")
+            Text("点击按钮拉取最新论文")
                 .font(AppTheme.Typography.body)
                 .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
             
             Button(action: onRefresh) {
-                Text("拉取论文")
+                Text("拉取最新论文")
                     .font(AppTheme.Typography.headline)
                     .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
                     .frame(width: 120, height: 44)
