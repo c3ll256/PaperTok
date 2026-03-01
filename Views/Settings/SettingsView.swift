@@ -15,7 +15,11 @@ struct SettingsView: View {
     @State private var isTestingConnection = false
     @State private var showCategorySelection = false
     @AppStorage("preloadCount") private var preloadCount = 3
-    
+    @AppStorage("feedSource") private var feedSource = FeedSource.arxiv.rawValue
+    @AppStorage("hfTimePeriod") private var hfTimePeriod = HFTimePeriod.daily.rawValue
+    @AppStorage("arxivActiveCategory") private var arxivActiveCategory = "all"
+    @Query private var preferences: [UserPreference]
+
     let onDismiss: (() -> Void)?
     
     init(onDismiss: (() -> Void)? = nil) {
@@ -27,48 +31,140 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 32) {
                     
-                    // Paper Categories Section
+                    // Data Source Section
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("论文范围")
+                        Text("数据来源")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             .padding(.horizontal, 24)
-                        
-                        Button(action: {
-                            showCategorySelection = true
-                        }) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("选择感兴趣的领域")
-                                        .font(AppTheme.Typography.headline)
-                                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                                    
-                                    Text("调整你想看到的论文类型")
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                                }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+
+                        VStack(spacing: 12) {
+                            // Source picker
+                            Picker("数据来源", selection: $feedSource) {
+                                Text("arXiv").tag(FeedSource.arxiv.rawValue)
+                                Text("Hugging Face Papers").tag(FeedSource.huggingFace.rawValue)
                             }
-                            .padding(16)
-                            .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
-                            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
-                                    .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
-                            )
+                            .pickerStyle(.segmented)
+
+                            // Time period picker — only for HF source
+                            if feedSource == FeedSource.huggingFace.rawValue {
+                                Picker("时间范围", selection: $hfTimePeriod) {
+                                    ForEach(HFTimePeriod.allCases, id: \.rawValue) { period in
+                                        Text(period.displayName).tag(period.rawValue)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+
+                                Text("Hugging Face Papers 按社区热度排序，不支持按领域筛选")
+                                    .font(AppTheme.Typography.caption)
+                                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                    .transition(.opacity)
+                            }
                         }
-                        .buttonStyle(PlainButtonStyle())
                         .padding(.horizontal, 24)
+                        .animation(.easeInOut(duration: 0.2), value: feedSource)
                     }
-                    
+
                     Divider()
                         .padding(.horizontal, 24)
-                    
+
+                    // Paper Categories Section — only for arXiv source
+                    if feedSource == FeedSource.arxiv.rawValue {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("论文范围")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                                .padding(.horizontal, 24)
+
+                            // Category scope selection
+                            Button(action: { showCategorySelection = true }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("选择感兴趣的领域")
+                                            .font(AppTheme.Typography.headline)
+                                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+                                        Text("调整你想看到的论文类型")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                                }
+                                .padding(16)
+                                .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+                                .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                                        .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.horizontal, 24)
+
+                            // Active category filter — shown when multiple categories configured
+                            let selectedCats = preferences.first?.selectedCategories ?? []
+                            if selectedCats.count > 1 {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("当前分类")
+                                            .font(AppTheme.Typography.headline)
+                                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+                                        Text(arxivActiveCategory == "all"
+                                             ? "显示全部已选分类"
+                                             : CategorySelectionView.displayName(for: arxivActiveCategory))
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                    }
+
+                                    Spacer()
+
+                                    Menu {
+                                        Button("全部分类") { arxivActiveCategory = "all" }
+                                        Divider()
+                                        ForEach(selectedCats, id: \.self) { cat in
+                                            Button(CategorySelectionView.displayName(for: cat)) {
+                                                arxivActiveCategory = cat
+                                            }
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Text(arxivActiveCategory == "all"
+                                                 ? "全部"
+                                                 : CategorySelectionView.shortCode(for: arxivActiveCategory))
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                                            Image(systemName: "chevron.up.chevron.down")
+                                                .font(.system(size: 11, weight: .semibold))
+                                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
+                                        .clipShape(.rect(cornerRadius: 8))
+                                    }
+                                }
+                                .padding(16)
+                                .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+                                .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                                        .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
+                                )
+                                .padding(.horizontal, 24)
+                            }
+                        }
+
+                        Divider()
+                            .padding(.horizontal, 24)
+                    }
+
                     // Preload setting
                     HStack {
                         Text("预加载篇数")
@@ -518,6 +614,32 @@ struct CategorySelectionView: View {
     
     @State private var selectedCategories: Set<String> = []
     
+    static let allCategories: [(code: String, chinese: String, english: String)] = [
+        ("cs.AI", "人工智能", "Artificial Intelligence"),
+        ("cs.CL", "计算语言学", "Computation and Language"),
+        ("cs.CV", "计算机视觉", "Computer Vision"),
+        ("cs.LG", "机器学习", "Machine Learning"),
+        ("cs.NE", "神经网络", "Neural and Evolutionary Computing"),
+        ("stat.ML", "统计机器学习", "Machine Learning (Statistics)"),
+        ("cs.CR", "密码学", "Cryptography and Security"),
+        ("cs.DB", "数据库", "Databases"),
+        ("cs.DC", "分布式计算", "Distributed Computing"),
+        ("cs.IR", "信息检索", "Information Retrieval"),
+        ("q-bio.BM", "生物分子", "Biomolecules"),
+        ("q-bio.GN", "基因组学", "Genomics"),
+        ("q-bio.NC", "神经科学", "Neurons and Cognition"),
+        ("q-bio.QM", "定量方法（生物）", "Quantitative Methods"),
+        ("cs.CE", "计算工程与生物信息", "Computational Engineering & Bioinformatics")
+    ]
+
+    /// Full Chinese display name for a category code (e.g. "cs.AI" → "人工智能")
+    static func displayName(for code: String) -> String {
+        allCategories.first { $0.code == code }?.chinese ?? code
+    }
+
+    /// Short label for compact UI (returns the code as-is, e.g. "cs.AI")
+    static func shortCode(for code: String) -> String { code }
+
     let availableCategories = [
         ("cs.AI", "人工智能", "Artificial Intelligence"),
         ("cs.CL", "计算语言学", "Computation and Language"),

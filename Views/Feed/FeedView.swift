@@ -12,6 +12,9 @@ struct FeedView: View {
     @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
     @AppStorage("preloadCount") private var preloadCount = 3
     @AppStorage("hasSeenSwipeGuide") private var hasSeenSwipeGuide = false
+    @AppStorage("feedSource") private var feedSource = FeedSource.arxiv.rawValue
+    @AppStorage("hfTimePeriod") private var hfTimePeriod = HFTimePeriod.daily.rawValue
+    @AppStorage("arxivActiveCategory") private var arxivActiveCategory = "all"
     @State private var currentIndex = 0
     @State private var rankedPapers: [Paper] = []
     @State private var isLoading = false
@@ -114,6 +117,21 @@ struct FeedView: View {
                     loadPapers()
                 }
             }
+            .onChange(of: feedSource) { _, _ in
+                guard hasConfiguredAPI else { return }
+                rankedPapers = []
+                loadPapers()
+            }
+            .onChange(of: hfTimePeriod) { _, _ in
+                guard feedSource == FeedSource.huggingFace.rawValue, hasConfiguredAPI else { return }
+                rankedPapers = []
+                loadPapers()
+            }
+            .onChange(of: arxivActiveCategory) { _, _ in
+                guard feedSource == FeedSource.arxiv.rawValue, hasConfiguredAPI else { return }
+                rankedPapers = []
+                loadPapers()
+            }
             
         }
     }
@@ -124,32 +142,42 @@ struct FeedView: View {
     private func loadPapers() {
         isLoading = true
         currentOffset = 0
-        
+
         Task {
             do {
-                guard let preference = preferences.first else {
-                    await MainActor.run {
-                        isLoading = false
+                let fetchedIds: [String]
+
+                if feedSource == FeedSource.huggingFace.rawValue {
+                    // Hugging Face Papers: community-curated, already ranked by upvotes
+                    let period = HFTimePeriod(rawValue: hfTimePeriod) ?? .daily
+                    let hfService = HuggingFaceService(modelContainer: modelContainer)
+                    fetchedIds = try await hfService.fetchPapers(period: period)
+                } else {
+                    // arXiv: fetch by category, then re-rank with RankingEngine
+                    guard let preference = preferences.first else {
+                        await MainActor.run { isLoading = false }
+                        return
                     }
-                    return
+                    let allSelected = preference.selectedCategories
+                    // Use active category filter; fall back to all if filter is stale
+                    let queryCategories = (arxivActiveCategory != "all" && allSelected.contains(arxivActiveCategory))
+                        ? [arxivActiveCategory]
+                        : allSelected
+                    let arxivService = ArxivService(modelContainer: modelContainer)
+                    let query = ArxivQuery(
+                        categories: queryCategories,
+                        maxResults: pageSize,
+                        start: 0,
+                        sortBy: "submittedDate",
+                        sortOrder: "descending"
+                    )
+                    let rawIds = try await arxivService.fetchPapers(query: query)
+                    let rankingEngine = RankingEngine(modelContainer: modelContainer)
+                    fetchedIds = try await rankingEngine.rankPapers(rawIds)
                 }
-                
-                let arxivService = ArxivService(modelContainer: modelContainer)
-                let query = ArxivQuery(
-                    categories: preference.selectedCategories,
-                    maxResults: pageSize,
-                    start: 0,
-                    sortBy: "submittedDate",
-                    sortOrder: "descending"
-                )
-                
-                let fetchedArxivIds = try await arxivService.fetchPapers(query: query)
-                
-                let rankingEngine = RankingEngine(modelContainer: modelContainer)
-                let rankedArxivIds = try await rankingEngine.rankPapers(fetchedArxivIds)
-                
+
                 await MainActor.run {
-                    rankedPapers = rankedArxivIds.compactMap { arxivId in
+                    rankedPapers = fetchedIds.compactMap { arxivId in
                         let descriptor = FetchDescriptor<Paper>(
                             predicate: #Predicate { $0.arxivId == arxivId }
                         )
@@ -158,7 +186,7 @@ struct FeedView: View {
                     currentOffset = pageSize
                     currentIndex = 0
                     isLoading = false
-                    
+
                     // Show swipe guide on first successful load
                     if !hasSeenSwipeGuide && !rankedPapers.isEmpty {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
@@ -180,7 +208,9 @@ struct FeedView: View {
     }
     
     /// Loads the next page and appends to the current list.
+    /// HuggingFace Papers is a finite curated list per period — no pagination needed.
     private func loadMorePapers() {
+        guard feedSource != FeedSource.huggingFace.rawValue else { return }
         guard !isLoadingMore && !isLoading else { return }
         isLoadingMore = true
         
@@ -193,9 +223,13 @@ struct FeedView: View {
                     return
                 }
                 
+                let allSelected = preference.selectedCategories
+                let queryCategories = (arxivActiveCategory != "all" && allSelected.contains(arxivActiveCategory))
+                    ? [arxivActiveCategory]
+                    : allSelected
                 let arxivService = ArxivService(modelContainer: modelContainer)
                 let query = ArxivQuery(
-                    categories: preference.selectedCategories,
+                    categories: queryCategories,
                     maxResults: pageSize,
                     start: currentOffset,
                     sortBy: "submittedDate",
