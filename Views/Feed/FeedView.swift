@@ -26,6 +26,8 @@ struct FeedView: View {
     @State private var showSwipeGuide = false
     @State private var showMenu = false
     @State private var showArxivSearchSheet = false
+    @State private var showDataSourceSheet = false
+    @State private var showCategorySheet = false
     @State private var currentOffset = 0
     private let pageSize = 10
     
@@ -76,18 +78,18 @@ struct FeedView: View {
                             isExpanded: $showMenu,
                             isLoading: isLoading,
                             feedSource: $feedSource,
-                            selectedArxivCategories: selectedArxivCategories(),
                             arxivSearchKeyword: arxivSearchKeyword,
                             onSettings: { showSettings = true },
                             onBookmarks: { showBookmarks = true },
                             onRefreshLatest: { loadPapers() },
-                            onToggleArxivCategory: { code in
-                                toggleArxivCategory(code)
-                                rankedPapers = []
-                                loadPapers()
-                            },
                             onTapArxivSearch: {
                                 showArxivSearchSheet = true
+                            },
+                            onTapDataSource: {
+                                showDataSourceSheet = true
+                            },
+                            onTapArxivCategories: {
+                                showCategorySheet = true
                             }
                         )
                         Spacer()
@@ -127,6 +129,20 @@ struct FeedView: View {
             .sheet(isPresented: $showArxivSearchSheet) {
                 ArxivSearchSheet(initialKeyword: arxivSearchKeyword) { keyword in
                     arxivSearchKeyword = keyword
+                    rankedPapers = []
+                    loadPapers()
+                }
+            }
+            .sheet(isPresented: $showDataSourceSheet) {
+                DataSourcePickerSheet(selectedSource: feedSource) { source in
+                    feedSource = source
+                }
+            }
+            .sheet(isPresented: $showCategorySheet) {
+                ArxivCategoryMultiSelectSheet(
+                    selectedCategories: Set(selectedArxivCategories())
+                ) { categories in
+                    updateArxivCategories(categories)
                     rankedPapers = []
                     loadPapers()
                 }
@@ -280,7 +296,7 @@ struct FeedView: View {
         try? modelContext.save()
     }
 
-    private func toggleArxivCategory(_ code: String) {
+    private func updateArxivCategories(_ categories: Set<String>) {
         let descriptor = FetchDescriptor<UserPreference>()
         let preference: UserPreference
         if let existing = try? modelContext.fetch(descriptor).first {
@@ -291,16 +307,14 @@ struct FeedView: View {
             preference = created
         }
 
-        var set = Set(preference.selectedCategories)
-        if set.contains(code) {
-            // Keep at least one category selected.
-            if set.count > 1 {
-                set.remove(code)
-            }
+        let finalCategories: [String]
+        if categories.isEmpty {
+            finalCategories = CategorySelectionView.allCategories.map(\.code)
         } else {
-            set.insert(code)
+            finalCategories = Array(categories).sorted()
         }
-        preference.selectedCategories = Array(set).sorted()
+
+        preference.selectedCategories = finalCategories
         preference.updatedAt = Date()
         try? modelContext.save()
     }
@@ -313,66 +327,45 @@ struct FloatingMenuView: View {
     @Binding var isExpanded: Bool
     let isLoading: Bool
     @Binding var feedSource: String
-    let selectedArxivCategories: [String]
     let arxivSearchKeyword: String
     let onSettings: () -> Void
     let onBookmarks: () -> Void
     let onRefreshLatest: () -> Void
-    let onToggleArxivCategory: (String) -> Void
     let onTapArxivSearch: () -> Void
+    let onTapDataSource: () -> Void
+    let onTapArxivCategories: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Menu items — shown when expanded
             if isExpanded {
-                Menu {
-                    Button {
-                        feedSource = FeedSource.arxiv.rawValue
-                    } label: {
-                        HStack {
-                            Text("arXiv")
-                            if feedSource == FeedSource.arxiv.rawValue {
-                                Image(systemName: "checkmark")
-                            }
-                        }
+                Button {
+                    withAnimation(.spring(duration: 0.35, bounce: 0.25)) {
+                        isExpanded = false
                     }
-                    Button {
-                        feedSource = FeedSource.huggingFace.rawValue
-                    } label: {
-                        HStack {
-                            Text("Hugging Face Papers")
-                            if feedSource == FeedSource.huggingFace.rawValue {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
+                    onTapDataSource()
                 } label: {
                     FloatingMenuLabel(icon: "square.2.layers.3d", label: dataSourceLabel)
                 }
+                .buttonStyle(ToolbarButtonStyle())
                 .transition(.asymmetric(
                     insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
                     removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)
                 ))
 
                 if feedSource == FeedSource.arxiv.rawValue {
-                    Menu {
-                        ForEach(CategorySelectionView.allCategories, id: \.code) { category in
-                            let isSelected = selectedArxivCategories.contains(category.code)
-                            Button {
-                                onToggleArxivCategory(category.code)
-                            } label: {
-                                Label(
-                                    "\(category.chinese) (\(category.code))",
-                                    systemImage: isSelected ? "checkmark.circle.fill" : "circle"
-                                )
-                            }
+                    Button {
+                        withAnimation(.spring(duration: 0.35, bounce: 0.25)) {
+                            isExpanded = false
                         }
+                        onTapArxivCategories()
                     } label: {
                         FloatingMenuLabel(
                             icon: "line.3.horizontal.decrease.circle",
                             label: "分类筛选（多选）"
                         )
                     }
+                    .buttonStyle(ToolbarButtonStyle())
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
                         removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)
@@ -483,17 +476,37 @@ private struct FloatingMenuLabel: View {
     let label: String
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-            Text(label)
-                .font(.system(size: 15, weight: .medium))
+        Group {
+            if #available(iOS 26, *) {
+                HStack(spacing: 10) {
+                    Image(systemName: icon)
+                        .font(.system(size: 16))
+                    Text(label)
+                        .font(.system(size: 15, weight: .medium))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                .padding(.horizontal, 16)
+                .frame(height: 44)
+                .contentShape(.capsule)
+                .glassEffect(.regular.interactive(), in: .capsule)
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: icon)
+                        .font(.system(size: 16))
+                    Text(label)
+                        .font(.system(size: 15, weight: .medium))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                .padding(.horizontal, 16)
+                .frame(height: 44)
+                .background(.thickMaterial)
+                .clipShape(.capsule)
+            }
         }
-        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-        .padding(.horizontal, 16)
-        .frame(height: 44)
-        .background(.thickMaterial)
-        .clipShape(.capsule)
     }
 }
 
@@ -601,6 +614,163 @@ struct ArxivSearchSheet: View {
                     }
                 }
             }
+        }
+    }
+}
+
+struct DataSourcePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var selectedSource: String
+    let onSelect: (String) -> Void
+
+    init(selectedSource: String, onSelect: @escaping (String) -> Void) {
+        _selectedSource = State(initialValue: selectedSource)
+        self.onSelect = onSelect
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 12) {
+                dataSourceRow(
+                    title: "arXiv",
+                    subtitle: "按最新提交时间拉取论文",
+                    value: FeedSource.arxiv.rawValue
+                )
+
+                dataSourceRow(
+                    title: "Hugging Face Papers",
+                    subtitle: "社区聚合与热度排序",
+                    value: FeedSource.huggingFace.rawValue
+                )
+
+                Spacer()
+            }
+            .padding(24)
+            .background(AppTheme.Colors.background(for: colorScheme))
+            .navigationTitle("选择数据源")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") {
+                        onSelect(selectedSource)
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func dataSourceRow(title: String, subtitle: String, value: String) -> some View {
+        Button {
+            selectedSource = value
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                }
+                Spacer()
+                Image(systemName: selectedSource == value ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(selectedSource == value ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
+            }
+            .padding(14)
+            .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                    .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct ArxivCategoryMultiSelectSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var selectedCategories: Set<String>
+    let onApply: (Set<String>) -> Void
+
+    init(selectedCategories: Set<String>, onApply: @escaping (Set<String>) -> Void) {
+        _selectedCategories = State(initialValue: selectedCategories)
+        self.onApply = onApply
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(CategorySelectionView.allCategories, id: \.code) { category in
+                            Button {
+                                toggle(category.code)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(category.chinese)
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                                        Text(category.code)
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                    }
+                                    Spacer()
+                                    Image(systemName: selectedCategories.contains(category.code) ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundStyle(selectedCategories.contains(category.code) ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
+                                }
+                                .padding(12)
+                                .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+                                .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                                        .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(16)
+                    .padding(.bottom, 20)
+                }
+            }
+            .background(AppTheme.Colors.background(for: colorScheme))
+            .navigationTitle("分类筛选")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("应用") {
+                        onApply(selectedCategories)
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func toggle(_ code: String) {
+        if selectedCategories.contains(code) {
+            if selectedCategories.count > 1 {
+                selectedCategories.remove(code)
+            }
+        } else {
+            selectedCategories.insert(code)
         }
     }
 }

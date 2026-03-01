@@ -186,35 +186,8 @@ struct SettingsView: View {
                     }
                     .disabled(apiKey.isEmpty)
                     .padding(.horizontal, 24)
-                    
-                    // Disclaimer
-                    VStack(spacing: 8) {
-                        Text("关于费用")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                        
-                        Text("使用 AI 摘要功能会消耗你的 API 配额。每篇论文摘要约消耗 1000-2000 tokens。费用由你与 API 提供商直接结算，PaperTok 不收取任何额外费用。")
-                            .font(AppTheme.Typography.caption)
-                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                    }
-                    .padding(.vertical, 20)
-                    
-                    // Privacy notice
-                    VStack(spacing: 8) {
-                        Text("隐私与安全")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                        
-                        Text("你的 API 密钥仅保存在本地设备的 Keychain 中，不会上传到任何服务器。PaperTok 不收集、存储或传输你的密钥信息。")
-                            .font(AppTheme.Typography.caption)
-                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                    }
-                    .padding(.vertical, 20)
                 }
+                .padding(.top, 32)
                 .padding(.bottom, 40)
             }
             .background(AppTheme.Colors.background(for: colorScheme))
