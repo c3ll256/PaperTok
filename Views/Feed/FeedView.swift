@@ -11,7 +11,6 @@ struct FeedView: View {
     
     @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
     @AppStorage("preloadCount") private var preloadCount = 3
-    @AppStorage("hasSeenSwipeGuide") private var hasSeenSwipeGuide = false
     @AppStorage("feedSource") private var feedSource = FeedSource.arxiv.rawValue
     @AppStorage("hfTimePeriod") private var hfTimePeriod = HFTimePeriod.daily.rawValue
     @AppStorage("arxivSearchKeyword") private var arxivSearchKeyword = ""
@@ -23,7 +22,6 @@ struct FeedView: View {
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var showBookmarks = false
-    @State private var showSwipeGuide = false
     @State private var showMenu = false
     @State private var showArxivSearchSheet = false
     @State private var showDataSourceSheet = false
@@ -56,18 +54,6 @@ struct FeedView: View {
                         isLoadingMore: isLoadingMore,
                         onLoadMore: loadMorePapers
                     )
-                }
-                
-                // Swipe gesture guide overlay
-                if showSwipeGuide {
-                    SwipeGestureGuideView {
-                        withAnimation(.easeOut(duration: 0.3)) {
-                            showSwipeGuide = false
-                        }
-                        hasSeenSwipeGuide = true
-                    }
-                    .transition(.opacity)
-                    .zIndex(10)
                 }
                 
                 // Floating menu button — bottom-left corner
@@ -208,15 +194,6 @@ struct FeedView: View {
                     currentOffset = pageSize
                     currentIndex = 0
                     isLoading = false
-
-                    // Show swipe guide on first successful load
-                    if !hasSeenSwipeGuide && !rankedPapers.isEmpty {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                            withAnimation(.easeIn(duration: 0.3)) {
-                                showSwipeGuide = true
-                            }
-                        }
-                    }
                 }
             } catch {
                 print("Error loading papers: \(error)")
@@ -844,154 +821,6 @@ struct FABButtonStyle: ButtonStyle {
             .contentShape(Circle())
             .opacity(configuration.isPressed ? 0.6 : 1.0)
             .animation(.easeInOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
-// MARK: - Swipe Gesture Guide
-
-struct SwipeGestureGuideView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    let onDismiss: () -> Void
-    
-    @State private var leftArrowOffset: CGFloat = 0
-    @State private var rightArrowOffset: CGFloat = 0
-    @State private var contentOpacity: Double = 0
-    @State private var handOffset: CGFloat = 0
-    
-    var body: some View {
-        ZStack {
-            // Dimmed background
-            Color.black.opacity(0.55)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    onDismiss()
-                }
-            
-            VStack(spacing: 48) {
-                Spacer()
-                
-                // Swipe hints
-                HStack(spacing: 0) {
-                    // Right swipe → View original
-                    swipeHint(
-                        icon: "doc.text",
-                        label: "右滑查看原文",
-                        arrowDirection: .right,
-                        color: Color(hex: "5DADE2"),
-                        arrowOffset: rightArrowOffset
-                    )
-                    
-                    Spacer()
-                    
-                    // Left swipe → Like
-                    swipeHint(
-                        icon: "heart.fill",
-                        label: "左滑喜欢",
-                        arrowDirection: .left,
-                        color: Color(hex: "F1948A"),
-                        arrowOffset: leftArrowOffset
-                    )
-                }
-                .padding(.horizontal, 32)
-                
-                // Hand gesture illustration
-                VStack(spacing: 16) {
-                    Image(systemName: "hand.draw")
-                        .font(.system(size: 44, weight: .light))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .offset(x: handOffset)
-                    
-                    Text("左右滑动卡片来操作")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-                
-                Spacer()
-                
-                // Dismiss hint
-                VStack(spacing: 8) {
-                    Text("点击任意位置继续")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-                .padding(.bottom, 100)
-            }
-            .opacity(contentOpacity)
-        }
-        .onAppear {
-            startAnimations()
-        }
-    }
-    
-    private func startAnimations() {
-        // Fade in content
-        withAnimation(.easeOut(duration: 0.5)) {
-            contentOpacity = 1
-        }
-        
-        // Looping arrow animations
-        withAnimation(
-            .easeInOut(duration: 1.0)
-            .repeatForever(autoreverses: true)
-        ) {
-            leftArrowOffset = -12
-            rightArrowOffset = 12
-        }
-        
-        // Hand swipe animation
-        withAnimation(
-            .easeInOut(duration: 1.5)
-            .repeatForever(autoreverses: true)
-        ) {
-            handOffset = 30
-        }
-    }
-    
-    enum ArrowDirection {
-        case left, right
-    }
-    
-    @ViewBuilder
-    private func swipeHint(
-        icon: String,
-        label: String,
-        arrowDirection: ArrowDirection,
-        color: Color,
-        arrowOffset: CGFloat
-    ) -> some View {
-        VStack(spacing: 12) {
-            // Icon
-            Image(systemName: icon)
-                .font(.system(size: 32, weight: .medium))
-                .foregroundStyle(color)
-                .frame(width: 64, height: 64)
-                .background(color.opacity(0.15))
-                .clipShape(.circle)
-            
-            // Arrow
-            HStack(spacing: 4) {
-                if arrowDirection == .left {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .bold))
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .bold))
-                        .opacity(0.5)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 16, weight: .bold))
-                        .opacity(0.5)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 16, weight: .bold))
-                }
-            }
-            .foregroundStyle(color)
-            .offset(x: arrowOffset)
-            
-            // Label
-            Text(label)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
-        }
     }
 }
 
