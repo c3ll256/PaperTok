@@ -31,7 +31,7 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 // Header
                 VStack(spacing: 12) {
-                    Text("欢迎使用 PaperTok")
+                    Text("欢迎使用 PaperFlip")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(AppTheme.Colors.textPrimary(for: colorScheme))
                     

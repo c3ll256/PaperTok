@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct PaperTokApp: App {
+struct PaperFlipApp: App {
     let modelContainer: ModelContainer
     
     init() {

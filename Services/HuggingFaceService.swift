@@ -167,7 +167,7 @@ actor HuggingFaceService {
 
     private static func fetchRaw(from url: URL) async throws -> [HFDailyPaper] {
         var request = URLRequest(url: url)
-        request.setValue("PaperTok/1.0 (iOS; mailto:papertok@example.com)", forHTTPHeaderField: "User-Agent")
+        request.setValue("PaperFlip/1.0 (iOS; mailto:paperflip@example.com)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 30
 

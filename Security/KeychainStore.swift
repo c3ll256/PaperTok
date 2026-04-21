@@ -40,7 +40,7 @@ struct APIConfiguration: Codable {
 class KeychainStore {
     static let shared = KeychainStore()
     
-    private let service = "com.papertok.api"
+    private let service = "com.paperflip.api"
     private let account = "llm_config"
     
     private init() {}

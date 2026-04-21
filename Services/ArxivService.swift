@@ -108,7 +108,7 @@ actor ArxivService {
         // Create a custom URLRequest with proper headers
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("PaperTok/1.0 (iOS; mailto:papertok@example.com)", forHTTPHeaderField: "User-Agent")
+        request.setValue("PaperFlip/1.0 (iOS; mailto:paperflip@example.com)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/atom+xml", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 90
         
