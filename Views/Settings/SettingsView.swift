@@ -114,15 +114,27 @@ struct SettingsView: View {
                                 .font(AppTheme.Typography.headline)
                                 .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             
-                            TextField("API 端点地址", text: $baseURL, prompt: Text("API 端点地址").foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme)))
+                            TextField(
+                                selectedProvider.defaultBaseURLPrefix,
+                                text: $baseURL,
+                                prompt: Text(selectedProvider.defaultBaseURLPrefix)
+                                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                            )
                                 .textFieldStyle(CustomTextFieldStyle())
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .keyboardType(.URL)
                             
-                            Text("默认值：\(selectedProvider.defaultBaseURL)")
-                                .font(AppTheme.Typography.caption)
-                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("最终地址：\(assembledBaseURL)")
+                                    .font(AppTheme.Typography.caption)
+                                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                    .textSelection(.enabled)
+                                
+                                Text("只需填主机地址，后缀 \(selectedProvider.apiPathSuffix) 会自动拼接")
+                                    .font(AppTheme.Typography.caption)
+                                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                            }
                         }
                         
                         // Model Name
@@ -224,11 +236,29 @@ struct SettingsView: View {
         ], for: .normal)
     }
     
+    /// 把用户填的 prefix 拼成完整请求 URL，用于预览、测试连接和保存。
+    private var assembledBaseURL: String {
+        selectedProvider.assembledBaseURL(fromPrefix: baseURL)
+    }
+    
+    /// 判断某个字段是否还是"任一 provider 的默认值"。只有在此情况下才会随
+    /// provider 切换自动覆盖，保留用户手动改过的内容。
+    private func isAtAnyDefault<T: Equatable>(_ value: T, keyPath: (LLMProvider) -> T) -> Bool {
+        LLMProvider.allCases.contains { keyPath($0) == value }
+    }
+    
     private func updateDefaults(for provider: LLMProvider) {
-        if baseURL.isEmpty || baseURL == LLMProvider.allCases.first(where: { $0 != provider })?.defaultBaseURL {
-            baseURL = provider.defaultBaseURL
+        // baseURL: 允许空串，或仍为任一 provider 的默认 prefix / 默认完整 URL 时才覆盖
+        let isBaseURLAtDefault = baseURL.isEmpty
+            || isAtAnyDefault(baseURL) { $0.defaultBaseURLPrefix }
+            || isAtAnyDefault(baseURL) { $0.defaultBaseURL }
+        if isBaseURLAtDefault {
+            baseURL = provider.defaultBaseURLPrefix
         }
-        if modelName.isEmpty || modelName == LLMProvider.allCases.first(where: { $0 != provider })?.defaultModel {
+        
+        let isModelAtDefault = modelName.isEmpty
+            || isAtAnyDefault(modelName) { $0.defaultModel }
+        if isModelAtDefault {
             modelName = provider.defaultModel
         }
     }
@@ -237,7 +267,8 @@ struct SettingsView: View {
         if let config = try? KeychainStore.shared.loadConfiguration() {
             selectedProvider = config.provider
             apiKey = config.apiKey
-            baseURL = config.baseURL
+            // 把存储的完整 URL 反向剥离成 prefix，回填给输入框
+            baseURL = config.provider.extractPrefix(fromFullBaseURL: config.baseURL)
             modelName = config.modelName
         } else {
             updateDefaults(for: selectedProvider)
@@ -255,7 +286,7 @@ struct SettingsView: View {
                 let config = APIConfiguration(
                     provider: selectedProvider,
                     apiKey: apiKey,
-                    baseURL: baseURL.isEmpty ? selectedProvider.defaultBaseURL : baseURL,
+                    baseURL: assembledBaseURL,
                     modelName: modelName.isEmpty ? selectedProvider.defaultModel : modelName,
                     apiVersion: nil
                 )
@@ -402,7 +433,7 @@ struct SettingsView: View {
         let config = APIConfiguration(
             provider: selectedProvider,
             apiKey: apiKey,
-            baseURL: baseURL.isEmpty ? selectedProvider.defaultBaseURL : baseURL,
+            baseURL: assembledBaseURL,
             modelName: modelName.isEmpty ? selectedProvider.defaultModel : modelName,
             apiVersion: nil
         )
