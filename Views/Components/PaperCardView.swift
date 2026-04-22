@@ -318,18 +318,6 @@ struct SummaryContentView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            if let problem = summary.problem {
-                SectionView(title: "问题", content: problem, icon: "questionmark.circle")
-            }
-            
-            if let method = summary.method {
-                SectionView(title: "方法", content: method, icon: "gearshape")
-            }
-            
-            if let result = summary.result {
-                SectionView(title: "结果", content: result, icon: "chart.bar")
-            }
-            
             if let oneLiner = summary.oneLiner {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -351,6 +339,18 @@ struct SummaryContentView: View {
                 .padding(16)
                 .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
                 .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+            }
+            
+            if let problem = summary.problem {
+                SectionView(title: "问题", content: problem, icon: "questionmark.circle")
+            }
+            
+            if let method = summary.method {
+                SectionView(title: "方法", content: method, icon: "gearshape")
+            }
+            
+            if let result = summary.result {
+                SectionView(title: "结果", content: result, icon: "chart.bar")
             }
             
             if !terms.isEmpty {
