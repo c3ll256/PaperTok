@@ -72,18 +72,18 @@ class LLMProviderAdapter {
     
     func generateCompletion(request: LLMRequest) async throws -> LLMResponse {
         switch config.provider {
-        case .anthropic:
-            return try await callAnthropic(request: request)
-        case .openai:
-            return try await callOpenAI(request: request)
-        case .google:
-            return try await callGoogle(request: request)
+        case .messages:
+            return try await callMessagesCompatible(request: request)
+        case .chatCompletions:
+            return try await callChatCompletionsCompatible(request: request)
+        case .generateContent:
+            return try await callGenerateContentCompatible(request: request)
         }
     }
     
-    // MARK: - Anthropic
+    // MARK: - Messages API compatible
     
-    private func callAnthropic(request: LLMRequest) async throws -> LLMResponse {
+    private func callMessagesCompatible(request: LLMRequest) async throws -> LLMResponse {
         guard let url = URL(string: config.baseURL) else {
             throw LLMError.invalidConfiguration
         }
@@ -106,7 +106,7 @@ class LLMProviderAdapter {
         
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        print("[LLM] Calling Anthropic API: \(config.baseURL)")
+        print("[LLM] Calling messages-compatible API: \(config.baseURL)")
         
         let (data, response): (Data, URLResponse)
         do {
@@ -142,9 +142,9 @@ class LLMProviderAdapter {
         return LLMResponse(content: text, model: config.modelName, usage: usage)
     }
     
-    // MARK: - OpenAI
+    // MARK: - Chat Completions compatible
     
-    private func callOpenAI(request: LLMRequest) async throws -> LLMResponse {
+    private func callChatCompletionsCompatible(request: LLMRequest) async throws -> LLMResponse {
         guard let url = URL(string: config.baseURL) else {
             throw LLMError.invalidConfiguration
         }
@@ -166,7 +166,7 @@ class LLMProviderAdapter {
         
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        print("[LLM] Calling OpenAI API: \(config.baseURL)")
+        print("[LLM] Calling chat-completions-compatible API: \(config.baseURL)")
         
         let (data, response): (Data, URLResponse)
         do {
@@ -203,9 +203,9 @@ class LLMProviderAdapter {
         return LLMResponse(content: content, model: config.modelName, usage: usage)
     }
     
-    // MARK: - Google
+    // MARK: - Generate Content compatible
     
-    private func callGoogle(request: LLMRequest) async throws -> LLMResponse {
+    private func callGenerateContentCompatible(request: LLMRequest) async throws -> LLMResponse {
         let urlString = "\(config.baseURL)/\(config.modelName):generateContent?key=\(config.apiKey)"
         guard let url = URL(string: urlString) else {
             throw LLMError.invalidConfiguration
@@ -231,7 +231,7 @@ class LLMProviderAdapter {
         
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        print("[LLM] Calling Google API: \(urlString)")
+        print("[LLM] Calling generate-content-compatible API: \(urlString)")
         
         let (data, response): (Data, URLResponse)
         do {
@@ -280,7 +280,8 @@ class LLMProviderAdapter {
                 throw LLMError.authenticationFailed
             case 429:
                 throw LLMError.rateLimitExceeded
-            case 402, 403 where errorMessage.contains("balance") || errorMessage.contains("quota"):
+            case 402 where errorMessage.contains("balance") || errorMessage.contains("quota"),
+                 403 where errorMessage.contains("balance") || errorMessage.contains("quota"):
                 throw LLMError.insufficientBalance
             default:
                 throw LLMError.apiError(statusCode: statusCode, message: errorMessage)

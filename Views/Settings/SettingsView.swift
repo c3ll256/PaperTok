@@ -4,14 +4,6 @@ import SwiftData
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
-    @State private var selectedProvider: LLMProvider = .anthropic
-    @State private var apiKey: String = ""
-    @State private var baseURL: String = ""
-    @State private var modelName: String = ""
-    @State private var showTestResult = false
-    @State private var testResultMessage = ""
-    @State private var isTestingConnection = false
     @AppStorage("preloadCount") private var preloadCount = 3
 
     let onDismiss: (() -> Void)?
@@ -68,135 +60,33 @@ struct SettingsView: View {
                     Divider()
                         .padding(.horizontal, 24)
                     
-                    VStack(alignment: .leading, spacing: 24) {
-                        Text("API 配置")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                        
-                        // Provider selection
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("API 提供商")
-                                .font(AppTheme.Typography.headline)
-                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                            
-                            Picker("Provider", selection: $selectedProvider) {
-                                ForEach(LLMProvider.allCases, id: \.self) { provider in
-                                    Text(provider.rawValue)
-                                        .tag(provider)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                            .onAppear {
-                                configureSegmentedControl()
-                            }
-                            .onChange(of: selectedProvider) { _, newValue in
-                                updateDefaults(for: newValue)
-                            }
+                    NavigationLink {
+                        APIConfigurationSettingsView {
+                            dismiss()
+                            onDismiss?()
                         }
-                        
-                        // API Key
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("API Key")
-                                .font(AppTheme.Typography.headline)
-                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                            
-                            SecureField("输入你的 API Key", text: $apiKey, prompt: Text("输入你的 API Key").foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme)))
-                                .textFieldStyle(CustomTextFieldStyle())
-                            
-                            Text("密钥仅保存在本地设备，不会上传到任何服务器")
-                                .font(AppTheme.Typography.caption)
-                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                        }
-                        
-                        // Base URL
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Base URL")
-                                .font(AppTheme.Typography.headline)
-                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                            
-                            TextField(
-                                selectedProvider.defaultBaseURLPrefix,
-                                text: $baseURL,
-                                prompt: Text(selectedProvider.defaultBaseURLPrefix)
-                                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
-                            )
-                                .textFieldStyle(CustomTextFieldStyle())
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .keyboardType(.URL)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("最终地址：\(assembledBaseURL)")
+                    } label: {
+                        HStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("API 配置")
+                                    .font(AppTheme.Typography.headline)
+                                    .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                                
+                                Text("配置兼容接口、密钥和模型")
                                     .font(AppTheme.Typography.caption)
                                     .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                                    .textSelection(.enabled)
-                                
-                                Text("只需填主机地址，后缀 \(selectedProvider.apiPathSuffix) 会自动拼接")
-                                    .font(AppTheme.Typography.caption)
-                                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                             }
-                        }
-                        
-                        // Model Name
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Model Name")
-                                .font(AppTheme.Typography.headline)
-                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                             
-                            TextField("模型名称", text: $modelName, prompt: Text("模型名称").foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme)))
-                                .textFieldStyle(CustomTextFieldStyle())
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
+                            Spacer()
                             
-                            Text("默认值：\(selectedProvider.defaultModel)")
-                                .font(AppTheme.Typography.caption)
-                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                         }
+                        .padding(16)
+                        .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
+                        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                     }
-                    .padding(.horizontal, 24)
-                    
-                    // Test connection button
-                    VStack(spacing: 12) {
-                        Button(action: testConnection) {
-                            HStack {
-                                if isTestingConnection {
-                                    ProgressView()
-                                        .tint(AppTheme.Colors.textInverted(for: colorScheme))
-                                } else {
-                                    Text("测试连接")
-                                        .font(AppTheme.Typography.headline)
-                                }
-                            }
-                            .foregroundStyle(apiKey.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(apiKey.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
-                            .clipShape(.capsule)
-                            .modifier(GlassEffectModifier())
-                        }
-                        .disabled(apiKey.isEmpty || isTestingConnection)
-                        
-                        if showTestResult {
-                            Text(testResultMessage)
-                                .font(AppTheme.Typography.body)
-                                .foregroundStyle(testResultMessage.contains("成功") ? AppTheme.Colors.accentGreen(for: colorScheme) : AppTheme.Colors.destructive(for: colorScheme))
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    
-                    // Save button
-                    Button(action: saveConfiguration) {
-                        Text("保存配置")
-                            .font(AppTheme.Typography.headline)
-                            .foregroundStyle(apiKey.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(apiKey.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
-                            .clipShape(.capsule)
-                            .modifier(GlassEffectModifier())
-                    }
-                    .disabled(apiKey.isEmpty)
                     .padding(.horizontal, 24)
                 }
                 .padding(.top, 32)
@@ -217,23 +107,160 @@ struct SettingsView: View {
                     }
                 }
             }
-            .task {
-                loadExistingConfiguration()
-            }
         }
     }
+}
+
+struct APIConfigurationSettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
+    @State private var selectedProvider: LLMProvider = .messages
+    @State private var apiKey: String = ""
+    @State private var baseURL: String = ""
+    @State private var modelName: String = ""
+    @State private var showTestResult = false
+    @State private var testResultMessage = ""
+    @State private var isTestingConnection = false
     
-    private func configureSegmentedControl() {
-        // Configure segmented control appearance - using system default colors
-        UISegmentedControl.appearance().selectedSegmentTintColor = nil // Use system default
-        UISegmentedControl.appearance().setTitleTextAttributes([
-            .foregroundColor: UIColor.label,
-            .font: UIFont.systemFont(ofSize: 15, weight: .medium)
-        ], for: .selected)
-        UISegmentedControl.appearance().setTitleTextAttributes([
-            .foregroundColor: UIColor.secondaryLabel,
-            .font: UIFont.systemFont(ofSize: 15, weight: .regular)
-        ], for: .normal)
+    let onSave: () -> Void
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 32) {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("兼容接口")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("接口类型")
+                            .font(AppTheme.Typography.headline)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                        
+                        VStack(spacing: 10) {
+                            ForEach(LLMProvider.allCases, id: \.self) { provider in
+                                ProviderOptionRow(
+                                    provider: provider,
+                                    isSelected: provider == selectedProvider
+                                ) {
+                                    selectedProvider = provider
+                                }
+                            }
+                        }
+                        .onChange(of: selectedProvider) { _, newValue in
+                            updateDefaults(for: newValue)
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("API Key")
+                            .font(AppTheme.Typography.headline)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                        
+                        SecureField("输入你的 API Key", text: $apiKey, prompt: Text("输入你的 API Key").foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme)))
+                            .textFieldStyle(CustomTextFieldStyle())
+                        
+                        Text("密钥仅保存在本地设备，不会上传到任何服务器")
+                            .font(AppTheme.Typography.caption)
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Base URL")
+                            .font(AppTheme.Typography.headline)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                        
+                        TextField(
+                            selectedProvider.defaultBaseURLPrefix,
+                            text: $baseURL,
+                            prompt: Text(selectedProvider.defaultBaseURLPrefix)
+                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                        )
+                        .textFieldStyle(CustomTextFieldStyle())
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("最终地址：\(assembledBaseURL)")
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                .textSelection(.enabled)
+                            
+                            Text("只需填主机地址，后缀 \(selectedProvider.apiPathSuffix) 会自动拼接")
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Model Name")
+                            .font(AppTheme.Typography.headline)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                        
+                        TextField("模型名称", text: $modelName, prompt: Text("模型名称").foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme)))
+                            .textFieldStyle(CustomTextFieldStyle())
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        
+                        Text("默认值：\(selectedProvider.defaultModel)")
+                            .font(AppTheme.Typography.caption)
+                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                    }
+                }
+                .padding(.horizontal, 24)
+                
+                VStack(spacing: 12) {
+                    Button(action: testConnection) {
+                        HStack {
+                            if isTestingConnection {
+                                ProgressView()
+                                    .tint(AppTheme.Colors.textInverted(for: colorScheme))
+                            } else {
+                                Text("测试连接")
+                                    .font(AppTheme.Typography.headline)
+                            }
+                        }
+                        .foregroundStyle(apiKey.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(apiKey.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                        .clipShape(.capsule)
+                        .modifier(GlassEffectModifier())
+                    }
+                    .disabled(apiKey.isEmpty || isTestingConnection)
+                    
+                    if showTestResult {
+                        Text(testResultMessage)
+                            .font(AppTheme.Typography.body)
+                            .foregroundStyle(testResultMessage.contains("成功") ? AppTheme.Colors.accentGreen(for: colorScheme) : AppTheme.Colors.destructive(for: colorScheme))
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(.horizontal, 24)
+                
+                Button(action: saveConfiguration) {
+                    Text("保存配置")
+                        .font(AppTheme.Typography.headline)
+                        .foregroundStyle(apiKey.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(apiKey.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                        .clipShape(.capsule)
+                        .modifier(GlassEffectModifier())
+                }
+                .disabled(apiKey.isEmpty)
+                .padding(.horizontal, 24)
+            }
+            .padding(.top, 32)
+            .padding(.bottom, 40)
+        }
+        .background(AppTheme.Colors.background(for: colorScheme))
+        .navigationTitle("API 配置")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            loadExistingConfiguration()
+        }
     }
     
     /// 把用户填的 prefix 拼成完整请求 URL，用于预览、测试连接和保存。
@@ -441,12 +468,55 @@ struct SettingsView: View {
         do {
             try KeychainStore.shared.saveConfiguration(config)
             hasConfiguredAPI = true
-            dismiss()
-            onDismiss?()
+            onSave()
         } catch {
             testResultMessage = "保存失败：\(error.localizedDescription)"
             showTestResult = true
         }
+    }
+}
+
+struct ProviderOptionRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
+    let provider: LLMProvider
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(provider.displayName)
+                        .font(AppTheme.Typography.body)
+                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                    
+                    Text(provider.apiPathSuffix)
+                        .font(AppTheme.Typography.caption)
+                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+                
+                Spacer(minLength: 8)
+                
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(isSelected ? AppTheme.Colors.surfacePrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
+            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                    .stroke(isSelected ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.border(for: colorScheme), lineWidth: isSelected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

@@ -1,11 +1,10 @@
 import SwiftUI
 
-/// AppTheme provides a centralized design system inspired by OpenAI's visual language
+/// AppTheme provides a centralized design system for adaptive app UI
 /// with adaptive colors for light/dark mode, typography presets, and spacing constants.
 enum AppTheme {
     
     // MARK: - Colors
-    // Based on ChatGPT Apps SDK Design System
     
     enum Colors {
         // MARK: - Background Colors

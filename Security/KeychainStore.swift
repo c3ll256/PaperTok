@@ -2,30 +2,65 @@ import Foundation
 import Security
 
 enum LLMProvider: String, Codable, CaseIterable {
-    case anthropic = "Anthropic"
-    case openai = "OpenAI"
-    case google = "Google"
+    case messages = "Anthropic-Compatible"
+    case chatCompletions = "OpenAI-Compatible"
+    case generateContent = "Gemini-Compatible"
+
+    var displayName: String {
+        switch self {
+        case .messages:
+            return "Messages Compatible"
+        case .chatCompletions:
+            return "OpenAI Compatible"
+        case .generateContent:
+            return "Generate Content Compatible"
+        }
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        
+        switch value {
+        case "Anthropic", "Anthropic-Compatible":
+            self = .messages
+        case "OpenAI", "OpenAI-Compatible":
+            self = .chatCompletions
+        case "Google", "Gemini", "Gemini-Compatible":
+            self = .generateContent
+        default:
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unknown LLM provider: \(value)"
+            )
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
     
     /// Host / 可选前缀部分。用户在设置里只需要填这个。
     var defaultBaseURLPrefix: String {
         switch self {
-        case .anthropic:
-            return "https://api.anthropic.com"
-        case .openai:
-            return "https://api.openai.com"
-        case .google:
-            return "https://generativelanguage.googleapis.com"
+        case .messages:
+            return "https://your-messages-endpoint.example.com"
+        case .chatCompletions:
+            return "https://your-chat-completions-endpoint.example.com"
+        case .generateContent:
+            return "https://your-generate-content-endpoint.example.com"
         }
     }
     
     /// 按 provider 固定的 API 路径后缀，自动拼到 prefix 后面。
     var apiPathSuffix: String {
         switch self {
-        case .anthropic:
+        case .messages:
             return "/v1/messages"
-        case .openai:
+        case .chatCompletions:
             return "/v1/chat/completions"
-        case .google:
+        case .generateContent:
             return "/v1beta/models"
         }
     }
@@ -64,12 +99,12 @@ enum LLMProvider: String, Codable, CaseIterable {
     
     var defaultModel: String {
         switch self {
-        case .anthropic:
-            return "claude-haiku-4-5"
-        case .openai:
-            return "gpt-5.2"
-        case .google:
-            return "gemini-3-flash-preview"
+        case .messages:
+            return "your-messages-model"
+        case .chatCompletions:
+            return "your-chat-completions-model"
+        case .generateContent:
+            return "your-generate-content-model"
         }
     }
 }
