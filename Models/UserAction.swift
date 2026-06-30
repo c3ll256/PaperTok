@@ -26,13 +26,20 @@ final class UserAction {
 final class UserPreference {
     var id: String = "user_preference_singleton"
     var selectedCategories: [String] = []
+    var filterKeywords: [String] = []
     var sortPreference: String = "hotness"
     var summaryLengthPreference: String = "medium"
     var updatedAt: Date = Date()
     
-    init(selectedCategories: [String] = [], sortPreference: String = "hotness", summaryLengthPreference: String = "medium") {
+    init(
+        selectedCategories: [String] = [],
+        filterKeywords: [String] = [],
+        sortPreference: String = "hotness",
+        summaryLengthPreference: String = "medium"
+    ) {
         self.id = "user_preference_singleton"
         self.selectedCategories = selectedCategories
+        self.filterKeywords = filterKeywords
         self.sortPreference = sortPreference
         self.summaryLengthPreference = summaryLengthPreference
         self.updatedAt = Date()
