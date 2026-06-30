@@ -3,8 +3,11 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("preloadCount") private var preloadCount = 3
+    @AppStorage("feedSource") private var feedSource = FeedSource.arxiv.rawValue
+    @State private var selectedArxivCategories: Set<String> = []
 
     let onDismiss: (() -> Void)?
     
@@ -16,6 +19,12 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 32) {
+                    apiConfigurationLink
+                        .padding(.horizontal, 24)
+
+                    Divider()
+                        .padding(.horizontal, 24)
+
                     // Preload setting
                     HStack {
                         Text("预加载篇数")
@@ -59,35 +68,61 @@ struct SettingsView: View {
                     
                     Divider()
                         .padding(.horizontal, 24)
-                    
-                    NavigationLink {
-                        APIConfigurationSettingsView {
-                            dismiss()
-                            onDismiss?()
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("数据源")
+                            .font(AppTheme.Typography.headline)
+                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+                        VStack(spacing: 10) {
+                            dataSourceRow(
+                                title: "arXiv",
+                                subtitle: "按论文区拉取最新提交",
+                                value: FeedSource.arxiv.rawValue
+                            )
+
+                            dataSourceRow(
+                                title: "HF Daily",
+                                subtitle: "Hugging Face Papers 今日榜单",
+                                value: FeedSource.huggingFace.rawValue
+                            )
                         }
-                    } label: {
-                        HStack(spacing: 16) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("API 配置")
-                                    .font(AppTheme.Typography.headline)
-                                    .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                                
-                                Text("配置兼容接口、密钥和模型")
-                                    .font(AppTheme.Typography.caption)
-                                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
-                        }
-                        .padding(16)
-                        .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
-                        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
                     }
                     .padding(.horizontal, 24)
+
+                    if feedSource == FeedSource.arxiv.rawValue {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("论文区")
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 8)], spacing: 8) {
+                                ForEach(CategorySelectionView.allCategories, id: \.code) { category in
+                                    Button {
+                                        toggleArxivCategory(category.code)
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: selectedArxivCategories.contains(category.code) ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 13, weight: .semibold))
+                                            Text(category.code)
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .lineLimit(1)
+                                        }
+                                        .foregroundStyle(selectedArxivCategories.contains(category.code) ? AppTheme.Colors.textInverted(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 36)
+                                        .background(selectedArxivCategories.contains(category.code) ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
+                                        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.tag))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                    }
+
+                    Divider()
+                        .padding(.horizontal, 24)
                 }
                 .padding(.top, 32)
                 .padding(.bottom, 40)
@@ -95,6 +130,9 @@ struct SettingsView: View {
             .background(AppTheme.Colors.background(for: colorScheme))
             .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                loadSelectedArxivCategories()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -109,12 +147,105 @@ struct SettingsView: View {
             }
         }
     }
+
+    private var apiConfigurationLink: some View {
+        NavigationLink {
+            APIConfigurationSettingsView {
+                dismiss()
+                onDismiss?()
+            }
+        } label: {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("API 配置")
+                        .font(AppTheme.Typography.headline)
+                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+                    Text("配置兼容接口、密钥和模型")
+                        .font(AppTheme.Typography.caption)
+                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+            }
+            .padding(16)
+            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
+            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+        }
+    }
+
+    private func dataSourceRow(title: String, subtitle: String, value: String) -> some View {
+        Button {
+            feedSource = value
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                }
+                Spacer()
+                Image(systemName: feedSource == value ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(feedSource == value ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
+            }
+            .padding(14)
+            .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
+            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func loadSelectedArxivCategories() {
+        let descriptor = FetchDescriptor<UserPreference>()
+        if let preference = try? modelContext.fetch(descriptor).first,
+           !preference.selectedCategories.isEmpty {
+            selectedArxivCategories = Set(preference.selectedCategories)
+        } else {
+            selectedArxivCategories = Set(CategorySelectionView.allCategories.map(\.code))
+        }
+    }
+
+    private func toggleArxivCategory(_ code: String) {
+        if selectedArxivCategories.contains(code) {
+            if selectedArxivCategories.count > 1 {
+                selectedArxivCategories.remove(code)
+            }
+        } else {
+            selectedArxivCategories.insert(code)
+        }
+        saveSelectedArxivCategories()
+    }
+
+    private func saveSelectedArxivCategories() {
+        let descriptor = FetchDescriptor<UserPreference>()
+        let preference: UserPreference
+        if let existing = try? modelContext.fetch(descriptor).first {
+            preference = existing
+        } else {
+            let created = UserPreference()
+            modelContext.insert(created)
+            preference = created
+        }
+
+        preference.selectedCategories = Array(selectedArxivCategories).sorted()
+        preference.updatedAt = Date()
+        try? modelContext.save()
+        NotificationCenter.default.post(name: .arxivCategoriesDidChange, object: nil)
+    }
 }
 
 struct APIConfigurationSettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("hasConfiguredAPI") private var hasConfiguredAPI = false
-    @State private var selectedProvider: LLMProvider = .messages
+    @State private var selectedProvider: LLMProvider = .chatCompletions
     @State private var apiKey: String = ""
     @State private var baseURL: String = ""
     @State private var modelName: String = ""
@@ -147,8 +278,8 @@ struct APIConfigurationSettingsView: View {
                                 }
                             }
                         }
-                        .onChange(of: selectedProvider) { _, newValue in
-                            updateDefaults(for: newValue)
+                        .onChange(of: selectedProvider) {
+                            providerDidChange()
                         }
                     }
                     
@@ -171,9 +302,9 @@ struct APIConfigurationSettingsView: View {
                             .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
                         
                         TextField(
-                            selectedProvider.defaultBaseURLPrefix,
+                            "输入 Base URL",
                             text: $baseURL,
-                            prompt: Text(selectedProvider.defaultBaseURLPrefix)
+                            prompt: Text("输入 Base URL")
                                 .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
                         )
                         .textFieldStyle(CustomTextFieldStyle())
@@ -181,15 +312,17 @@ struct APIConfigurationSettingsView: View {
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
                         
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("最终地址：\(assembledBaseURL)")
-                                .font(AppTheme.Typography.caption)
-                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                                .textSelection(.enabled)
-                            
-                            Text("只需填主机地址，后缀 \(selectedProvider.apiPathSuffix) 会自动拼接")
-                                .font(AppTheme.Typography.caption)
-                                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                        if !assembledBaseURL.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("最终地址：\(assembledBaseURL)")
+                                    .font(AppTheme.Typography.caption)
+                                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                    .textSelection(.enabled)
+
+                                Text("只需填主机地址，后缀 \(selectedProvider.apiPathSuffix) 会自动拼接")
+                                    .font(AppTheme.Typography.caption)
+                                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+                            }
                         }
                     }
                     
@@ -202,10 +335,6 @@ struct APIConfigurationSettingsView: View {
                             .textFieldStyle(CustomTextFieldStyle())
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                        
-                        Text("默认值：\(selectedProvider.defaultModel)")
-                            .font(AppTheme.Typography.caption)
-                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
                     }
                 }
                 .padding(.horizontal, 24)
@@ -221,14 +350,14 @@ struct APIConfigurationSettingsView: View {
                                     .font(AppTheme.Typography.headline)
                             }
                         }
-                        .foregroundStyle(apiKey.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
+                        .foregroundStyle(canSubmitConfiguration ? AppTheme.Colors.textInverted(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .background(apiKey.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                        .background(canSubmitConfiguration ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
                         .clipShape(.capsule)
                         .modifier(GlassEffectModifier())
                     }
-                    .disabled(apiKey.isEmpty || isTestingConnection)
+                    .disabled(!canSubmitConfiguration || isTestingConnection)
                     
                     if showTestResult {
                         Text(testResultMessage)
@@ -242,14 +371,14 @@ struct APIConfigurationSettingsView: View {
                 Button(action: saveConfiguration) {
                     Text("保存配置")
                         .font(AppTheme.Typography.headline)
-                        .foregroundStyle(apiKey.isEmpty ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textInverted(for: colorScheme))
+                        .foregroundStyle(canSubmitConfiguration ? AppTheme.Colors.textInverted(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .background(apiKey.isEmpty ? AppTheme.Colors.surfaceSecondary(for: colorScheme) : AppTheme.Colors.textPrimary(for: colorScheme))
+                        .background(canSubmitConfiguration ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.surfaceSecondary(for: colorScheme))
                         .clipShape(.capsule)
                         .modifier(GlassEffectModifier())
                 }
-                .disabled(apiKey.isEmpty)
+                .disabled(!canSubmitConfiguration)
                 .padding(.horizontal, 24)
             }
             .padding(.top, 32)
@@ -268,28 +397,16 @@ struct APIConfigurationSettingsView: View {
         selectedProvider.assembledBaseURL(fromPrefix: baseURL)
     }
     
-    /// 判断某个字段是否还是"任一 provider 的默认值"。只有在此情况下才会随
-    /// provider 切换自动覆盖，保留用户手动改过的内容。
-    private func isAtAnyDefault<T: Equatable>(_ value: T, keyPath: (LLMProvider) -> T) -> Bool {
-        LLMProvider.allCases.contains { keyPath($0) == value }
+    private var canSubmitConfiguration: Bool {
+        !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !assembledBaseURL.isEmpty
+            && !modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
-    private func updateDefaults(for provider: LLMProvider) {
-        // baseURL: 允许空串，或仍为任一 provider 的默认 prefix / 默认完整 URL 时才覆盖
-        let isBaseURLAtDefault = baseURL.isEmpty
-            || isAtAnyDefault(baseURL) { $0.defaultBaseURLPrefix }
-            || isAtAnyDefault(baseURL) { $0.defaultBaseURL }
-        if isBaseURLAtDefault {
-            baseURL = provider.defaultBaseURLPrefix
-        }
-        
-        let isModelAtDefault = modelName.isEmpty
-            || isAtAnyDefault(modelName) { $0.defaultModel }
-        if isModelAtDefault {
-            modelName = provider.defaultModel
-        }
+    private func providerDidChange() {
+        showTestResult = false
     }
-    
+
     private func loadExistingConfiguration() {
         if let config = try? KeychainStore.shared.loadConfiguration() {
             selectedProvider = config.provider
@@ -297,8 +414,6 @@ struct APIConfigurationSettingsView: View {
             // 把存储的完整 URL 反向剥离成 prefix，回填给输入框
             baseURL = config.provider.extractPrefix(fromFullBaseURL: config.baseURL)
             modelName = config.modelName
-        } else {
-            updateDefaults(for: selectedProvider)
         }
     }
     
@@ -314,7 +429,7 @@ struct APIConfigurationSettingsView: View {
                     provider: selectedProvider,
                     apiKey: apiKey,
                     baseURL: assembledBaseURL,
-                    modelName: modelName.isEmpty ? selectedProvider.defaultModel : modelName,
+                    modelName: modelName.trimmingCharacters(in: .whitespacesAndNewlines),
                     apiVersion: nil
                 )
                 
@@ -461,7 +576,7 @@ struct APIConfigurationSettingsView: View {
             provider: selectedProvider,
             apiKey: apiKey,
             baseURL: assembledBaseURL,
-            modelName: modelName.isEmpty ? selectedProvider.defaultModel : modelName,
+            modelName: modelName.trimmingCharacters(in: .whitespacesAndNewlines),
             apiVersion: nil
         )
         

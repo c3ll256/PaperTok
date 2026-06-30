@@ -1,6 +1,38 @@
 import Foundation
 import SwiftData
 
+actor LLMRequestLimiter {
+    static let shared = LLMRequestLimiter(maxConcurrentRequests: 1)
+
+    private let maxConcurrentRequests: Int
+    private var activeRequests = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    init(maxConcurrentRequests: Int) {
+        self.maxConcurrentRequests = max(1, maxConcurrentRequests)
+    }
+
+    func acquire() async {
+        if activeRequests < maxConcurrentRequests {
+            activeRequests += 1
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+    }
+
+    func release() {
+        if waiters.isEmpty {
+            activeRequests = max(0, activeRequests - 1)
+        } else {
+            let continuation = waiters.removeFirst()
+            continuation.resume()
+        }
+    }
+}
+
 @ModelActor
 actor SummaryService {
     
@@ -58,7 +90,7 @@ actor SummaryService {
             maxTokens: 200
         )
         
-        let response = try await adapter.generateCompletion(request: request)
+        let response = try await generateCompletionWithRetries(adapter: adapter, request: request)
         let chineseTitle = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Create or update summary with just the title
@@ -146,7 +178,7 @@ actor SummaryService {
             maxTokens: 2000
         )
         
-        let response = try await adapter.generateCompletion(request: request)
+        let response = try await generateCompletionWithRetries(adapter: adapter, request: request)
         
         // Parse structured output
         let sections = parseSummarySections(from: response.content)
@@ -250,6 +282,48 @@ actor SummaryService {
         flushSection()
         
         return sections
+    }
+
+    private func generateCompletionWithRetries(adapter: LLMProviderAdapter, request: LLMRequest) async throws -> LLMResponse {
+        let maxAttempts = 3
+        var lastError: Error?
+
+        for attempt in 1...maxAttempts {
+            await LLMRequestLimiter.shared.acquire()
+            do {
+                let response = try await adapter.generateCompletion(request: request)
+                await LLMRequestLimiter.shared.release()
+                return response
+            } catch {
+                await LLMRequestLimiter.shared.release()
+                lastError = error
+                if attempt == maxAttempts || !shouldRetry(error) {
+                    throw error
+                }
+            }
+
+            let delaySeconds = UInt64(attempt * 2)
+            try await Task.sleep(nanoseconds: delaySeconds * 1_000_000_000)
+        }
+
+        throw lastError ?? LLMError.invalidResponse
+    }
+
+    private func shouldRetry(_ error: Error) -> Bool {
+        guard let llmError = error as? LLMError else {
+            return false
+        }
+
+        switch llmError {
+        case .timeout, .rateLimitExceeded, .invalidResponse:
+            return true
+        case .networkError:
+            return true
+        case .apiError(let statusCode, _):
+            return statusCode == 408 || statusCode == 429 || (500...599).contains(statusCode)
+        default:
+            return false
+        }
     }
     
     private func extractTerminology(from text: String, arxivId: String) async throws {

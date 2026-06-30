@@ -11,6 +11,7 @@ struct PaperCardView: View {
     @State private var terms: [TermGlossaryItem] = []
     @State private var isGeneratingSummary = false
     @State private var isTranslatingTitle = false
+    @State private var summaryErrorMessage: String?
     @State private var showFullAbstract = false
     @State private var startTime = Date()
     @State private var isFavorited = false
@@ -94,6 +95,32 @@ struct PaperCardView: View {
                             .padding(.vertical, 40)
                     } else if let summary = summary {
                         SummaryContentView(summary: summary, terms: terms)
+                    } else if let summaryErrorMessage {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("摘要生成失败")
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+                            Text(summaryErrorMessage)
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                                .multilineTextAlignment(.leading)
+                                .lineLimit(3)
+
+                            Button(action: generateSummary) {
+                                Text("重试生成")
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .background(AppTheme.Colors.textPrimary(for: colorScheme))
+                                .clipShape(.capsule)
+                                .modifier(GlassEffectModifier())
+                            }
+                            .padding(.top, 4)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
                     } else {
                         Button(action: generateSummary) {
                             HStack {
@@ -200,6 +227,7 @@ struct PaperCardView: View {
     
     private func generateSummary() {
         isGeneratingSummary = true
+        summaryErrorMessage = nil
         
         Task {
             do {
@@ -214,6 +242,7 @@ struct PaperCardView: View {
             } catch {
                 print("Error generating summary: \(error)")
                 await MainActor.run {
+                    summaryErrorMessage = error.localizedDescription
                     isGeneratingSummary = false
                 }
             }
@@ -222,6 +251,7 @@ struct PaperCardView: View {
     
     private func regenerateSummary() {
         isGeneratingSummary = true
+        summaryErrorMessage = nil
         summary = nil
         terms = []
         
@@ -238,6 +268,7 @@ struct PaperCardView: View {
             } catch {
                 print("Error regenerating summary: \(error)")
                 await MainActor.run {
+                    summaryErrorMessage = error.localizedDescription
                     isGeneratingSummary = false
                 }
             }
@@ -667,4 +698,3 @@ struct PaperBottomActionsView: View {
         .frame(maxWidth: .infinity)
     }
 }
-

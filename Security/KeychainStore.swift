@@ -2,8 +2,8 @@ import Foundation
 import Security
 
 enum LLMProvider: String, Codable, CaseIterable {
+    case chatCompletions = "Completions-Compatible"
     case messages = "Anthropic-Compatible"
-    case chatCompletions = "OpenAI-Compatible"
     case generateContent = "Gemini-Compatible"
 
     var displayName: String {
@@ -11,7 +11,7 @@ enum LLMProvider: String, Codable, CaseIterable {
         case .messages:
             return "Messages Compatible"
         case .chatCompletions:
-            return "OpenAI Compatible"
+            return "Completions API"
         case .generateContent:
             return "Generate Content Compatible"
         }
@@ -24,7 +24,7 @@ enum LLMProvider: String, Codable, CaseIterable {
         switch value {
         case "Anthropic", "Anthropic-Compatible":
             self = .messages
-        case "OpenAI", "OpenAI-Compatible":
+        case "Completions", "Completions-Compatible":
             self = .chatCompletions
         case "Google", "Gemini", "Gemini-Compatible":
             self = .generateContent
@@ -41,18 +41,6 @@ enum LLMProvider: String, Codable, CaseIterable {
         try container.encode(rawValue)
     }
     
-    /// Host / 可选前缀部分。用户在设置里只需要填这个。
-    var defaultBaseURLPrefix: String {
-        switch self {
-        case .messages:
-            return "https://your-messages-endpoint.example.com"
-        case .chatCompletions:
-            return "https://your-chat-completions-endpoint.example.com"
-        case .generateContent:
-            return "https://your-generate-content-endpoint.example.com"
-        }
-    }
-    
     /// 按 provider 固定的 API 路径后缀，自动拼到 prefix 后面。
     var apiPathSuffix: String {
         switch self {
@@ -65,22 +53,17 @@ enum LLMProvider: String, Codable, CaseIterable {
         }
     }
     
-    /// 完整默认 URL，保留给 adapter / 其他保持向后兼容的地方使用。
-    var defaultBaseURL: String {
-        defaultBaseURLPrefix + apiPathSuffix
-    }
-    
     /// 把用户输入的 prefix 拼成完整的请求 URL。
     /// - 去掉结尾多余的 `/`
     /// - 如果用户直接粘了完整 URL（已经以 `apiPathSuffix` 结尾），则原样返回，避免重复拼接
-    /// - 空输入则使用默认 prefix
+    /// - 空输入保持为空
     func assembledBaseURL(fromPrefix prefix: String) -> String {
         var normalized = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
         while normalized.hasSuffix("/") {
             normalized.removeLast()
         }
         if normalized.isEmpty {
-            normalized = defaultBaseURLPrefix
+            return ""
         }
         if normalized.hasSuffix(apiPathSuffix) {
             return normalized
@@ -95,17 +78,6 @@ enum LLMProvider: String, Codable, CaseIterable {
             return String(trimmed.dropLast(apiPathSuffix.count))
         }
         return trimmed
-    }
-    
-    var defaultModel: String {
-        switch self {
-        case .messages:
-            return "your-messages-model"
-        case .chatCompletions:
-            return "your-chat-completions-model"
-        case .generateContent:
-            return "your-generate-content-model"
-        }
     }
 }
 

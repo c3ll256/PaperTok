@@ -24,9 +24,9 @@ struct FeedView: View {
     @State private var showBookmarks = false
     @State private var showMenu = false
     @State private var showArxivSearchSheet = false
-    @State private var showDataSourceSheet = false
     @State private var showCategorySheet = false
     @State private var currentOffset = 0
+    @State private var feedVersion = 0
     private let pageSize = 10
     
     var body: some View {
@@ -54,6 +54,7 @@ struct FeedView: View {
                         isLoadingMore: isLoadingMore,
                         onLoadMore: loadMorePapers
                     )
+                    .id(feedVersion)
                 }
                 
                 // Floating menu button — bottom-left corner
@@ -70,9 +71,6 @@ struct FeedView: View {
                             onRefreshLatest: { loadPapers() },
                             onTapArxivSearch: {
                                 showArxivSearchSheet = true
-                            },
-                            onTapDataSource: {
-                                showDataSourceSheet = true
                             },
                             onTapArxivCategories: {
                                 showCategorySheet = true
@@ -96,8 +94,8 @@ struct FeedView: View {
             .navigationBarHidden(true)
             .sheet(isPresented: $showSettings) {
                 SettingsView(onDismiss: {
-                    if hasConfiguredAPI && rankedPapers.isEmpty {
-                        loadPapers()
+                    if hasConfiguredAPI {
+                        resetFeedAndLoad()
                     }
                 })
             }
@@ -115,13 +113,7 @@ struct FeedView: View {
             .sheet(isPresented: $showArxivSearchSheet) {
                 ArxivSearchSheet(initialKeyword: arxivSearchKeyword) { keyword in
                     arxivSearchKeyword = keyword
-                    rankedPapers = []
-                    loadPapers()
-                }
-            }
-            .sheet(isPresented: $showDataSourceSheet) {
-                DataSourcePickerSheet(selectedSource: feedSource) { source in
-                    feedSource = source
+                    resetFeedAndLoad()
                 }
             }
             .sheet(isPresented: $showCategorySheet) {
@@ -129,8 +121,7 @@ struct FeedView: View {
                     selectedCategories: Set(selectedArxivCategories())
                 ) { categories in
                     updateArxivCategories(categories)
-                    rankedPapers = []
-                    loadPapers()
+                    resetFeedAndLoad()
                 }
             }
             .task {
@@ -141,13 +132,15 @@ struct FeedView: View {
             }
             .onChange(of: feedSource) { _, _ in
                 guard hasConfiguredAPI else { return }
-                rankedPapers = []
-                loadPapers()
+                resetFeedAndLoad()
             }
             .onChange(of: hfTimePeriod) { _, _ in
                 guard feedSource == FeedSource.huggingFace.rawValue, hasConfiguredAPI else { return }
-                rankedPapers = []
-                loadPapers()
+                resetFeedAndLoad()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .arxivCategoriesDidChange)) { _ in
+                guard feedSource == FeedSource.arxiv.rawValue, hasConfiguredAPI else { return }
+                resetFeedAndLoad()
             }
             
         }
@@ -157,6 +150,8 @@ struct FeedView: View {
     
     /// Initial load: fetches the first page and replaces the current list.
     private func loadPapers() {
+        feedVersion += 1
+        let requestVersion = feedVersion
         isLoading = true
         currentOffset = 0
 
@@ -185,6 +180,7 @@ struct FeedView: View {
                 }
 
                 await MainActor.run {
+                    guard requestVersion == feedVersion else { return }
                     rankedPapers = fetchedIds.compactMap { arxivId in
                         let descriptor = FetchDescriptor<Paper>(
                             predicate: #Predicate { $0.arxivId == arxivId }
@@ -198,12 +194,23 @@ struct FeedView: View {
             } catch {
                 print("Error loading papers: \(error)")
                 await MainActor.run {
+                    guard requestVersion == feedVersion else { return }
                     isLoading = false
                     errorMessage = error.localizedDescription
                     showError = true
                 }
             }
         }
+    }
+
+    private func resetFeedAndLoad() {
+        feedVersion += 1
+        rankedPapers = []
+        currentIndex = 0
+        currentOffset = 0
+        isLoadingMore = false
+        showError = false
+        loadPapers()
     }
     
     /// Loads the next page and appends to the current list.
@@ -297,6 +304,10 @@ struct FeedView: View {
     }
 }
 
+extension Notification.Name {
+    static let arxivCategoriesDidChange = Notification.Name("arxivCategoriesDidChange")
+}
+
 // MARK: - Floating Menu
 
 struct FloatingMenuView: View {
@@ -309,27 +320,12 @@ struct FloatingMenuView: View {
     let onBookmarks: () -> Void
     let onRefreshLatest: () -> Void
     let onTapArxivSearch: () -> Void
-    let onTapDataSource: () -> Void
     let onTapArxivCategories: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Menu items — shown when expanded
             if isExpanded {
-                Button {
-                    withAnimation(.spring(duration: 0.35, bounce: 0.25)) {
-                        isExpanded = false
-                    }
-                    onTapDataSource()
-                } label: {
-                    FloatingMenuLabel(icon: "square.2.layers.3d", label: dataSourceLabel)
-                }
-                .buttonStyle(ToolbarButtonStyle())
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
-                    removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)
-                ))
-
                 if feedSource == FeedSource.arxiv.rawValue {
                     Button {
                         withAnimation(.spring(duration: 0.35, bounce: 0.25)) {
@@ -421,10 +417,6 @@ struct FloatingMenuView: View {
         .padding(.bottom, 16)
     }
 
-    private var dataSourceLabel: String {
-        feedSource == FeedSource.arxiv.rawValue ? "数据源：arXiv" : "数据源：Hugging Face"
-    }
-    
     @ViewBuilder
     private var fabLabel: some View {
         if #available(iOS 26, *) {
@@ -595,84 +587,6 @@ struct ArxivSearchSheet: View {
     }
 }
 
-struct DataSourcePickerSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var selectedSource: String
-    let onSelect: (String) -> Void
-
-    init(selectedSource: String, onSelect: @escaping (String) -> Void) {
-        _selectedSource = State(initialValue: selectedSource)
-        self.onSelect = onSelect
-    }
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
-                dataSourceRow(
-                    title: "arXiv",
-                    subtitle: "按最新提交时间拉取论文",
-                    value: FeedSource.arxiv.rawValue
-                )
-
-                dataSourceRow(
-                    title: "Hugging Face Papers",
-                    subtitle: "社区聚合与热度排序",
-                    value: FeedSource.huggingFace.rawValue
-                )
-
-                Spacer()
-            }
-            .padding(24)
-            .background(AppTheme.Colors.background(for: colorScheme))
-            .navigationTitle("选择数据源")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") {
-                        onSelect(selectedSource)
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-
-    private func dataSourceRow(title: String, subtitle: String, value: String) -> some View {
-        Button {
-            selectedSource = value
-        } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                    Text(subtitle)
-                        .font(.system(size: 13))
-                        .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                }
-                Spacer()
-                Image(systemName: selectedSource == value ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(selectedSource == value ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
-            }
-            .padding(14)
-            .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
-            .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
-                    .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 struct ArxivCategoryMultiSelectSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -779,28 +693,14 @@ struct EmptyStateView: View {
     let onRefresh: () -> Void
     
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 60))
-                .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
-            
-            Text("暂无论文")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-            
-            Text("点击按钮拉取最新论文")
-                .font(AppTheme.Typography.body)
-                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-            
-            Button(action: onRefresh) {
-                Text("拉取最新论文")
-                    .font(AppTheme.Typography.headline)
-                    .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
-                    .frame(width: 120, height: 44)
-                    .background(AppTheme.Colors.textPrimary(for: colorScheme))
-                    .clipShape(.capsule)
-                    .modifier(GlassEffectModifier())
-            }
+        Button(action: onRefresh) {
+            Text("重新加载")
+                .font(AppTheme.Typography.headline)
+                .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
+                .frame(width: 132, height: 44)
+                .background(AppTheme.Colors.textPrimary(for: colorScheme))
+                .clipShape(.capsule)
+                .modifier(GlassEffectModifier())
         }
     }
 }
