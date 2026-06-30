@@ -3,7 +3,7 @@ import SwiftData
 
 struct ArxivQuery {
     let categories: [String]
-    let keyword: String?
+    let keywords: [String]
     let maxResults: Int
     let start: Int // pagination offset
     let sortBy: String // "submittedDate", "lastUpdatedDate", "relevance"
@@ -11,18 +11,39 @@ struct ArxivQuery {
     
     init(
         categories: [String],
-        keyword: String? = nil,
+        keywords: [String] = [],
         maxResults: Int = 10,
         start: Int = 0,
         sortBy: String = "submittedDate",
         sortOrder: String = "descending"
     ) {
         self.categories = categories
-        self.keyword = keyword
+        self.keywords = keywords
         self.maxResults = maxResults
         self.start = start
         self.sortBy = sortBy
         self.sortOrder = sortOrder
+    }
+    
+    /// Builds the arXiv API `search_query` string from categories and keywords.
+    static func buildSearchQuery(categories: [String], keywords: [String]) -> String {
+        let categoryQuery = categories.map { "cat:\($0)" }.joined(separator: " OR ")
+        let trimmedKeywords = keywords
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        guard !trimmedKeywords.isEmpty else {
+            return "(\(categoryQuery))"
+        }
+        
+        let keywordQuery = trimmedKeywords
+            .map { "all:\"\(sanitizeKeyword($0))\"" }
+            .joined(separator: " OR ")
+        return "(\(categoryQuery)) AND (\(keywordQuery))"
+    }
+    
+    private static func sanitizeKeyword(_ keyword: String) -> String {
+        keyword.replacingOccurrences(of: "\"", with: "")
     }
 }
 
@@ -79,15 +100,10 @@ actor ArxivService {
     }
     
     private func fetchPapersInternal(query: ArxivQuery, attempt: Int) async throws -> [String] {
-        // Build search query
-        let categoryQuery = query.categories.map { "cat:\($0)" }.joined(separator: " OR ")
-        let trimmedKeyword = query.keyword?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let searchQuery: String
-        if trimmedKeyword.isEmpty {
-            searchQuery = "(\(categoryQuery))"
-        } else {
-            searchQuery = "(\(categoryQuery)) AND all:\"\(trimmedKeyword)\""
-        }
+        let searchQuery = ArxivQuery.buildSearchQuery(
+            categories: query.categories,
+            keywords: query.keywords
+        )
         
         var components = URLComponents(string: baseURL)!
         components.queryItems = [

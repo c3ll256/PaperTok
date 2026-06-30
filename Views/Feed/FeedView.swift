@@ -13,7 +13,7 @@ struct FeedView: View {
     @AppStorage("preloadCount") private var preloadCount = 3
     @AppStorage("feedSource") private var feedSource = FeedSource.arxiv.rawValue
     @AppStorage("hfTimePeriod") private var hfTimePeriod = HFTimePeriod.daily.rawValue
-    @AppStorage("arxivSearchKeyword") private var arxivSearchKeyword = ""
+    @AppStorage("arxivSearchKeyword") private var legacyArxivSearchKeyword = ""
     @State private var currentIndex = 0
     @State private var rankedPapers: [Paper] = []
     @State private var isLoading = false
@@ -23,9 +23,8 @@ struct FeedView: View {
     @State private var showError = false
     @State private var showBookmarks = false
     @State private var showMenu = false
-    @State private var showArxivSearchSheet = false
+    @State private var showArxivFilterSheet = false
     @State private var showDataSourceSheet = false
-    @State private var showCategorySheet = false
     @State private var currentOffset = 0
     private let pageSize = 10
     
@@ -64,18 +63,15 @@ struct FeedView: View {
                             isExpanded: $showMenu,
                             isLoading: isLoading,
                             feedSource: $feedSource,
-                            arxivSearchKeyword: arxivSearchKeyword,
+                            filterSummary: arxivFilterSummary(),
                             onSettings: { showSettings = true },
                             onBookmarks: { showBookmarks = true },
                             onRefreshLatest: { loadPapers() },
-                            onTapArxivSearch: {
-                                showArxivSearchSheet = true
+                            onTapArxivFilter: {
+                                showArxivFilterSheet = true
                             },
                             onTapDataSource: {
                                 showDataSourceSheet = true
-                            },
-                            onTapArxivCategories: {
-                                showCategorySheet = true
                             }
                         )
                         Spacer()
@@ -112,9 +108,12 @@ struct FeedView: View {
             .sheet(isPresented: $showBookmarks) {
                 BookmarksView()
             }
-            .sheet(isPresented: $showArxivSearchSheet) {
-                ArxivSearchSheet(initialKeyword: arxivSearchKeyword) { keyword in
-                    arxivSearchKeyword = keyword
+            .sheet(isPresented: $showArxivFilterSheet) {
+                ArxivFeedFilterSheet(
+                    selectedCategories: Set(selectedArxivCategories()),
+                    keywords: selectedArxivKeywords()
+                ) { categories, keywords in
+                    updateArxivFilter(categories: categories, keywords: keywords)
                     rankedPapers = []
                     loadPapers()
                 }
@@ -124,16 +123,8 @@ struct FeedView: View {
                     feedSource = source
                 }
             }
-            .sheet(isPresented: $showCategorySheet) {
-                ArxivCategoryMultiSelectSheet(
-                    selectedCategories: Set(selectedArxivCategories())
-                ) { categories in
-                    updateArxivCategories(categories)
-                    rankedPapers = []
-                    loadPapers()
-                }
-            }
             .task {
+                migrateLegacyKeywordIfNeeded()
                 ensureUserPreferenceExists()
                 if hasConfiguredAPI && rankedPapers.isEmpty {
                     loadPapers()
@@ -175,7 +166,7 @@ struct FeedView: View {
                     let arxivService = ArxivService(modelContainer: modelContainer)
                     let query = ArxivQuery(
                         categories: queryCategories,
-                        keyword: arxivSearchKeyword,
+                        keywords: selectedArxivKeywords(),
                         maxResults: pageSize,
                         start: 0,
                         sortBy: "submittedDate",
@@ -219,7 +210,7 @@ struct FeedView: View {
                 let arxivService = ArxivService(modelContainer: modelContainer)
                 let query = ArxivQuery(
                     categories: queryCategories,
-                    keyword: arxivSearchKeyword,
+                    keywords: selectedArxivKeywords(),
                     maxResults: pageSize,
                     start: currentOffset,
                     sortBy: "submittedDate",
@@ -265,6 +256,60 @@ struct FeedView: View {
         return CategorySelectionView.allCategories.map(\.code)
     }
 
+    private func selectedArxivKeywords() -> [String] {
+        preferences.first?.filterKeywords ?? []
+    }
+
+    private func arxivFilterSummary() -> String {
+        let categories = selectedArxivCategories()
+        let keywords = selectedArxivKeywords()
+        let allCategoryCodes = CategorySelectionView.allCategories.map(\.code)
+        let categoryCount = categories.count
+        let isAllCategories = Set(categories) == Set(allCategoryCodes)
+
+        var parts: [String] = []
+        if !isAllCategories {
+            parts.append("\(categoryCount) 个板块")
+        }
+        if !keywords.isEmpty {
+            if keywords.count == 1 {
+                parts.append(keywords[0])
+            } else {
+                parts.append("\(keywords.count) 个关键词")
+            }
+        }
+
+        if parts.isEmpty {
+            return "筛选条件"
+        }
+        return "筛选：" + parts.joined(separator: " · ")
+    }
+
+    private func migrateLegacyKeywordIfNeeded() {
+        let trimmed = legacyArxivSearchKeyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let descriptor = FetchDescriptor<UserPreference>()
+        let preference: UserPreference
+        if let existing = try? modelContext.fetch(descriptor).first {
+            preference = existing
+        } else {
+            let created = UserPreference(
+                selectedCategories: CategorySelectionView.allCategories.map(\.code)
+            )
+            modelContext.insert(created)
+            preference = created
+        }
+
+        if preference.filterKeywords.isEmpty {
+            preference.filterKeywords = [trimmed]
+            preference.updatedAt = Date()
+            try? modelContext.save()
+        }
+
+        legacyArxivSearchKeyword = ""
+    }
+
     private func ensureUserPreferenceExists() {
         guard preferences.isEmpty else { return }
         let defaultCategories = CategorySelectionView.allCategories.map(\.code)
@@ -273,7 +318,7 @@ struct FeedView: View {
         try? modelContext.save()
     }
 
-    private func updateArxivCategories(_ categories: Set<String>) {
+    private func updateArxivFilter(categories: Set<String>, keywords: [String]) {
         let descriptor = FetchDescriptor<UserPreference>()
         let preference: UserPreference
         if let existing = try? modelContext.fetch(descriptor).first {
@@ -292,6 +337,9 @@ struct FeedView: View {
         }
 
         preference.selectedCategories = finalCategories
+        preference.filterKeywords = keywords
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
         preference.updatedAt = Date()
         try? modelContext.save()
     }
@@ -304,13 +352,12 @@ struct FloatingMenuView: View {
     @Binding var isExpanded: Bool
     let isLoading: Bool
     @Binding var feedSource: String
-    let arxivSearchKeyword: String
+    let filterSummary: String
     let onSettings: () -> Void
     let onBookmarks: () -> Void
     let onRefreshLatest: () -> Void
-    let onTapArxivSearch: () -> Void
+    let onTapArxivFilter: () -> Void
     let onTapDataSource: () -> Void
-    let onTapArxivCategories: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -335,28 +382,14 @@ struct FloatingMenuView: View {
                         withAnimation(.spring(duration: 0.35, bounce: 0.25)) {
                             isExpanded = false
                         }
-                        onTapArxivCategories()
+                        onTapArxivFilter()
                     } label: {
                         FloatingMenuLabel(
                             icon: "line.3.horizontal.decrease.circle",
-                            label: "分类筛选（多选）"
+                            label: filterSummary
                         )
                     }
                     .buttonStyle(ToolbarButtonStyle())
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
-                        removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)
-                    ))
-
-                    FloatingMenuItem(
-                        icon: "magnifyingglass",
-                        label: arxivSearchKeyword.isEmpty ? "搜索论文" : "搜索：\(arxivSearchKeyword)"
-                    ) {
-                        withAnimation(.spring(duration: 0.35, bounce: 0.25)) {
-                            isExpanded = false
-                        }
-                        onTapArxivSearch()
-                    }
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.5, anchor: .bottomLeading).combined(with: .opacity),
                         removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)
@@ -533,58 +566,46 @@ struct FloatingMenuItem: View {
     }
 }
 
-struct ArxivSearchSheet: View {
+struct ArxivFeedFilterSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @State private var keyword: String
-    let onSearch: (String) -> Void
+    @State private var selectedCategories: Set<String>
+    @State private var keywords: [String]
+    @State private var keywordInput = ""
+    @FocusState private var isKeywordFieldFocused: Bool
 
-    init(initialKeyword: String, onSearch: @escaping (String) -> Void) {
-        _keyword = State(initialValue: initialKeyword)
-        self.onSearch = onSearch
+    let onApply: (Set<String>, [String]) -> Void
+
+    init(
+        selectedCategories: Set<String>,
+        keywords: [String],
+        onApply: @escaping (Set<String>, [String]) -> Void
+    ) {
+        _selectedCategories = State(initialValue: selectedCategories)
+        _keywords = State(initialValue: keywords)
+        self.onApply = onApply
     }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Text("输入关键词后，将在 arXiv 中拉取匹配的最新论文")
-                    .font(AppTheme.Typography.body)
-                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                TextField("例如：diffusion model", text: $keyword)
-                    .textFieldStyle(CustomTextFieldStyle())
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-
-                Button {
-                    onSearch(keyword.trimmingCharacters(in: .whitespacesAndNewlines))
-                    dismiss()
-                } label: {
-                    Text("搜索")
-                        .font(AppTheme.Typography.headline)
-                        .foregroundStyle(AppTheme.Colors.textInverted(for: colorScheme))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(AppTheme.Colors.textPrimary(for: colorScheme))
-                        .clipShape(.capsule)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    keywordSection
+                    categorySection
                 }
-                .modifier(GlassEffectModifier())
-
-                Button("清空关键词并查看全部") {
-                    onSearch("")
-                    dismiss()
-                }
-                .font(AppTheme.Typography.body)
-                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-
-                Spacer()
+                .padding(20)
+                .padding(.bottom, 24)
             }
-            .padding(24)
             .background(AppTheme.Colors.background(for: colorScheme))
-            .navigationTitle("arXiv 搜索")
+            .navigationTitle("筛选条件")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("应用") {
+                        onApply(selectedCategories, keywords)
+                        dismiss()
+                    }
+                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
                         dismiss()
@@ -592,6 +613,191 @@ struct ArxivSearchSheet: View {
                 }
             }
         }
+    }
+
+    private var keywordSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("关键词")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+            Text("匹配标题、摘要等任意字段；多个关键词为「或」关系")
+                .font(AppTheme.Typography.caption)
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+
+            HStack(spacing: 8) {
+                TextField("例如：diffusion model", text: $keywordInput)
+                    .textFieldStyle(CustomTextFieldStyle())
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($isKeywordFieldFocused)
+                    .onSubmit(addKeyword)
+
+                Button(action: addKeyword) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(
+                            keywordInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? AppTheme.Colors.textTertiary(for: colorScheme)
+                                : AppTheme.Colors.textPrimary(for: colorScheme)
+                        )
+                }
+                .disabled(keywordInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            if !keywords.isEmpty {
+                FlowLayout(spacing: 8) {
+                    ForEach(keywords, id: \.self) { keyword in
+                        KeywordChip(keyword: keyword) {
+                            keywords.removeAll { $0 == keyword }
+                        }
+                    }
+                }
+
+                Button("清空全部关键词") {
+                    keywords = []
+                }
+                .font(AppTheme.Typography.caption)
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+            }
+        }
+    }
+
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("板块")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+            Text("至少选择一个 arXiv 分类")
+                .font(AppTheme.Typography.caption)
+                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+
+            LazyVStack(spacing: 10) {
+                ForEach(CategorySelectionView.allCategories, id: \.code) { category in
+                    Button {
+                        toggleCategory(category.code)
+                    } label: {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(category.chinese)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                                Text(category.code)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                            }
+                            Spacer()
+                            Image(systemName: selectedCategories.contains(category.code) ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(
+                                    selectedCategories.contains(category.code)
+                                        ? AppTheme.Colors.textPrimary(for: colorScheme)
+                                        : AppTheme.Colors.textTertiary(for: colorScheme)
+                                )
+                        }
+                        .padding(12)
+                        .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
+                        .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                                .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func addKeyword() {
+        let trimmed = keywordInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !keywords.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
+            keywordInput = ""
+            return
+        }
+        keywords.append(trimmed)
+        keywordInput = ""
+        isKeywordFieldFocused = true
+    }
+
+    private func toggleCategory(_ code: String) {
+        if selectedCategories.contains(code) {
+            if selectedCategories.count > 1 {
+                selectedCategories.remove(code)
+            }
+        } else {
+            selectedCategories.insert(code)
+        }
+    }
+}
+
+private struct KeywordChip: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let keyword: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(keyword)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
+        .clipShape(.capsule)
+    }
+}
+
+/// Simple wrapping layout for keyword chips.
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y),
+                proposal: .unspecified
+            )
+        }
+    }
+
+    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var maxX: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            positions.append(CGPoint(x: x, y: y))
+            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+            maxX = max(maxX, x - spacing)
+        }
+
+        return (CGSize(width: maxX, height: y + rowHeight), positions)
     }
 }
 
@@ -670,85 +876,6 @@ struct DataSourcePickerSheet: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-struct ArxivCategoryMultiSelectSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var selectedCategories: Set<String>
-    let onApply: (Set<String>) -> Void
-
-    init(selectedCategories: Set<String>, onApply: @escaping (Set<String>) -> Void) {
-        _selectedCategories = State(initialValue: selectedCategories)
-        self.onApply = onApply
-    }
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(CategorySelectionView.allCategories, id: \.code) { category in
-                            Button {
-                                toggle(category.code)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(category.chinese)
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
-                                        Text(category.code)
-                                            .font(.system(size: 13))
-                                            .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
-                                    }
-                                    Spacer()
-                                    Image(systemName: selectedCategories.contains(category.code) ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 20, weight: .semibold))
-                                        .foregroundStyle(selectedCategories.contains(category.code) ? AppTheme.Colors.textPrimary(for: colorScheme) : AppTheme.Colors.textTertiary(for: colorScheme))
-                                }
-                                .padding(12)
-                                .background(AppTheme.Colors.surfacePrimary(for: colorScheme))
-                                .clipShape(.rect(cornerRadius: AppTheme.CornerRadius.card))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
-                                        .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(16)
-                    .padding(.bottom, 20)
-                }
-            }
-            .background(AppTheme.Colors.background(for: colorScheme))
-            .navigationTitle("分类筛选")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("应用") {
-                        onApply(selectedCategories)
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-
-    private func toggle(_ code: String) {
-        if selectedCategories.contains(code) {
-            if selectedCategories.count > 1 {
-                selectedCategories.remove(code)
-            }
-        } else {
-            selectedCategories.insert(code)
-        }
     }
 }
 
