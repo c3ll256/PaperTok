@@ -8,6 +8,9 @@ struct SettingsView: View {
     @AppStorage("preloadCount") private var preloadCount = 3
     @AppStorage("feedSource") private var feedSource = FeedSource.arxiv.rawValue
     @State private var selectedArxivCategories: Set<String> = []
+    @State private var selectedArxivKeywords: [String] = []
+    @State private var arxivKeywordInput = ""
+    @FocusState private var isArxivKeywordFieldFocused: Bool
 
     let onDismiss: (() -> Void)?
     
@@ -92,6 +95,55 @@ struct SettingsView: View {
 
                     if feedSource == FeedSource.arxiv.rawValue {
                         VStack(alignment: .leading, spacing: 12) {
+                            Text("关键词")
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+
+                            Text("匹配标题、摘要等任意字段，多个关键词为「或」关系")
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+
+                            HStack(spacing: 8) {
+                                TextField("例如：diffusion model", text: $arxivKeywordInput)
+                                    .textFieldStyle(CustomTextFieldStyle())
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .focused($isArxivKeywordFieldFocused)
+                                    .onSubmit(addArxivKeyword)
+
+                                Button(action: addArxivKeyword) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 28))
+                                        .foregroundStyle(
+                                            arxivKeywordInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                                ? AppTheme.Colors.textTertiary(for: colorScheme)
+                                                : AppTheme.Colors.textPrimary(for: colorScheme)
+                                        )
+                                }
+                                .disabled(arxivKeywordInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }
+
+                            if !selectedArxivKeywords.isEmpty {
+                                SettingsKeywordFlowLayout(spacing: 8) {
+                                    ForEach(selectedArxivKeywords, id: \.self) { keyword in
+                                        SettingsKeywordChip(keyword: keyword) {
+                                            selectedArxivKeywords.removeAll { $0 == keyword }
+                                            saveArxivPreferences()
+                                        }
+                                    }
+                                }
+
+                                Button("清空全部关键词") {
+                                    selectedArxivKeywords = []
+                                    saveArxivPreferences()
+                                }
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textSecondary(for: colorScheme))
+                            }
+                        }
+                        .padding(.horizontal, 24)
+
+                        VStack(alignment: .leading, spacing: 12) {
                             Text("论文区")
                                 .font(AppTheme.Typography.headline)
                                 .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
@@ -131,7 +183,7 @@ struct SettingsView: View {
             .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.inline)
             .task {
-                loadSelectedArxivCategories()
+                loadArxivPreferences()
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -203,13 +255,16 @@ struct SettingsView: View {
         .buttonStyle(.plain)
     }
 
-    private func loadSelectedArxivCategories() {
+    private func loadArxivPreferences() {
         let descriptor = FetchDescriptor<UserPreference>()
-        if let preference = try? modelContext.fetch(descriptor).first,
-           !preference.selectedCategories.isEmpty {
-            selectedArxivCategories = Set(preference.selectedCategories)
+        if let preference = try? modelContext.fetch(descriptor).first {
+            selectedArxivCategories = preference.selectedCategories.isEmpty
+                ? Set(CategorySelectionView.allCategories.map(\.code))
+                : Set(preference.selectedCategories)
+            selectedArxivKeywords = preference.filterKeywords
         } else {
             selectedArxivCategories = Set(CategorySelectionView.allCategories.map(\.code))
+            selectedArxivKeywords = []
         }
     }
 
@@ -221,10 +276,24 @@ struct SettingsView: View {
         } else {
             selectedArxivCategories.insert(code)
         }
-        saveSelectedArxivCategories()
+        saveArxivPreferences()
     }
 
-    private func saveSelectedArxivCategories() {
+    private func addArxivKeyword() {
+        let trimmed = arxivKeywordInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !selectedArxivKeywords.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
+            arxivKeywordInput = ""
+            return
+        }
+
+        selectedArxivKeywords.append(trimmed)
+        arxivKeywordInput = ""
+        isArxivKeywordFieldFocused = true
+        saveArxivPreferences()
+    }
+
+    private func saveArxivPreferences() {
         let descriptor = FetchDescriptor<UserPreference>()
         let preference: UserPreference
         if let existing = try? modelContext.fetch(descriptor).first {
@@ -236,6 +305,9 @@ struct SettingsView: View {
         }
 
         preference.selectedCategories = Array(selectedArxivCategories).sorted()
+        preference.filterKeywords = selectedArxivKeywords
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
         preference.updatedAt = Date()
         try? modelContext.save()
         NotificationCenter.default.post(name: .arxivCategoriesDidChange, object: nil)
@@ -649,6 +721,76 @@ struct CustomTextFieldStyle: TextFieldStyle {
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
                     .stroke(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
             )
+    }
+}
+
+private struct SettingsKeywordChip: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let keyword: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(keyword)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(AppTheme.Colors.textPrimary(for: colorScheme))
+                .lineLimit(1)
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(AppTheme.Colors.textTertiary(for: colorScheme))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(AppTheme.Colors.surfaceSecondary(for: colorScheme))
+        .clipShape(.capsule)
+    }
+}
+
+private struct SettingsKeywordFlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y),
+                proposal: .unspecified
+            )
+        }
+    }
+
+    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var maxX: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            positions.append(CGPoint(x: x, y: y))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+            maxX = max(maxX, x - spacing)
+        }
+
+        return (CGSize(width: maxX, height: y + rowHeight), positions)
     }
 }
 
